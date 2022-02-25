@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fields>
+        <fullName>Capture_Endpoint__c</fullName>
+        <defaultValue>&quot;/capture&quot;</defaultValue>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <label>Capture Endpoint</label>
+        <length>64</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Endpoint_Api_Version__c</fullName>
+        <description>The Api Version of the Endpoint.. ie. v52</description>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <inlineHelpText>The Api Version of the Endpoint ie. v52</inlineHelpText>
+        <label>Endpoint Api Version</label>
+        <length>16</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Endpoint_Method__c</fullName>
+        <defaultValue>&quot;POST&quot;</defaultValue>
+        <description>The HTTP Method for the endpoint. ie. POST</description>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <inlineHelpText>The HTTP Method for the endpoint. ie. POST</inlineHelpText>
+        <label>Endpoint Method</label>
+        <length>16</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Endpoint_Path__c</fullName>
+        <description>The path to be appended to the Endpoint URI Listed in the Named Credential.</description>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <inlineHelpText>The path to be appended to the Endpoint URI Listed in the Named Credential.</inlineHelpText>
+        <label>Endpoint Path</label>
+        <length>255</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Merchant_Account__c</fullName>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <label>Merchant Account</label>
+        <length>255</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Refund_Endpoint__c</fullName>
+        <defaultValue>&quot;/refund&quot;</defaultValue>
+        <externalId>false</externalId>
+        <fieldManageability>DeveloperControlled</fieldManageability>
+        <label>Refund Endpoint</label>
+        <length>64</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Single_Currency_Code__c</fullName>
+        <description>Leave blank if org is using mult-currency otherwise enter the currency ISO Code the org is using ie. USD . If null the adapter will look for CurrencyIsoCode fields in the org. These are placed there when enabling multi-currency</description>
+        <externalId>false</externalId>
+        <fieldManageability>SubscriberControlled</fieldManageability>
+        <inlineHelpText>Leave blank if org is using mult-currency otherwise enter the currency ISO Code the org is using ie. USD</inlineHelpText>
+        <label>Single Currency Code</label>
+        <length>4</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>System_Integrator_Name__c</fullName>
+        <description>Name of the System Integrator, working with the Merchant on installing and enabling the package</description>
+        <externalId>false</externalId>
+        <fieldManageability>SubscriberControlled</fieldManageability>
+        <inlineHelpText>Name of the System Integrator, working with the Merchant on installing and enabling the package</inlineHelpText>
+        <label>System Integrator Name</label>
+        <length>255</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <label>Adyen Adapter</label>
+    <pluralLabel>Adyen Adapters</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

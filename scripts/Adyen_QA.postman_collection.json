@@ -1,0 +1,798 @@
+{
+	"info": {
+		"_postman_id": "98d1c3e3-aea1-4144-b0ee-0024544a2128",
+		"name": "Adyen QA",
+		"description": "This collection is for testing the Adyen Payment Gateway connector in Salesforce. Here are the steps to test each method:\n\n1.  Checkout as a customer through the experience site\n    1.  (This will take care of Tokenize & Authorize, so there is no need for you to execute either of those requests from this Postman collection)\n2.  Run \"Get Data\"\n    1.  (This will get the most recent order summary information)\n3.  Run each request in the \"Capture\" folder in sequential order\n4.  If you wish to test refunds, run each request in the \"Refund\" folder in sequential order\n5.  If you wish to test cancels, run the \"Cancel Authorization\" request in the \"Tokenize/Authorize/Cancel\" folder\n    1.  You cannot test capture or refund after cancel\n    2.  Once the payment authorization is cancelled, it cannot be re-opened",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Tokenize/Authorize/Cancel",
+			"item": [
+				{
+					"name": "Tokenize",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"const payment_method_id = response.paymentMethod.id;",
+									"const gateway_token = response.gatewayResponse.gatewayToken;",
+									"",
+									"pm.test(\"Payment method successfully tokenized\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(payment_method_id).not.to.be.null;",
+									"    pm.expect(gateway_token).not.to.be.null;",
+									"    pm.expect(response.paymentMethod.status).to.be.eql(\"Active\");",
+									"    pm.expect(response.paymentGatewayLogs[0].interactionStatus).to.be.eql(\"Success\");",
+									"    pm.expect(response.gatewayResponse.salesforceResultCode).to.be.eql(\"Success\");",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"payment_method_id\", payment_method_id);",
+									"pm.collectionVariables.set(\"gateway_token\", gateway_token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"paymentGatewayId\": \"{{payment_gateway_id}}\",\n    \"address\": {\n        \"city\": \"Chicago\",\n        \"country\": \"US\",\n        \"postalCode\": \"60607\",\n        \"state\": \"IL\",\n        \"street\": \"1142 W Madison St\"\n    },\n    \"cardPaymentMethod\": {\n        \"accountId\": \"{{account_id}}\",\n        \"cardCategory\": \"CreditCard\",\n        \"cardHolderFirstName\": \"Greg\",\n        \"cardHolderLastName\": \"Wagers\",\n        \"cardHolderName\": \"Greg Wagers\",\n        \"cardNumber\": \"4000620000000007\",\n        \"expiryMonth\": \"03\",\n        \"expiryYear\": \"2030\",\n        \"cvv\": \"737\",\n        \"cardType\": \"Visa\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v51.0/commerce/payments/payment-methods",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v51.0",
+								"commerce",
+								"payments",
+								"payment-methods"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Authorize",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// This request does not work",
+									"const dateNow = new Date();",
+									"pm.variables.set(\"currentDate\", dateNow.toISOString());"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accountId\": \"{{account_id}}\",\n    \"amount\": 50.00,\n    \"currencyIsoCode\": \"USD\",\n    \"effectiveDate\": \"{{currentDate}}\",\n    \"paymentGatewayId\": \"{{payment_gateway_id}}\",\n    \"paymentMethod\": {\n        \"id\": \"{{payment_method_id}}\",\n        \"address\": {\n            \"city\": \"Chicago\",\n            \"country\": \"US\",\n            \"postalCode\": \"60607\",\n            \"state\": \"IL\",\n            \"street\": \"1142 W Madison St\"\n        },\n        \"cardPaymentMethod\": {\n            \"accountId\": \"{{account_id}}\",\n            \"cardCategory\": \"CreditCard\",\n            \"cardHolderFirstName\": \"Greg\",\n            \"cardHolderLastName\": \"Wagers\",\n            \"cardHolderName\": \"Greg Wagers\",\n            \"cardNumber\": \"4000620000000007\",\n            \"expiryMonth\": \"03\",\n            \"expiryYear\": \"2030\",\n            \"cvv\": \"737\",\n            \"cardType\": \"Visa\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v49.0/commerce/payments/authorizations",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v49.0",
+								"commerce",
+								"payments",
+								"authorizations"
+							]
+						},
+						"description": "**This request does not currently work!!**\n\nSalesforce will likely throw an error at you saying that the payment details don't match the payment method id. Something about the billing address being malformed. If you can figure out how to get past this, all the power to ya."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Authorization",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const dateNow = new Date();",
+									"pm.environment.set(\"currentDate\", dateNow.toISOString());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accountId\": \"{{account_id}}\",  \n    \"amount\": \"52.37\",\n    \"effectiveDate\": \"{{currentDate}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v51.0/commerce/payments/authorizations/{{authorization_id}}/reversals",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v51.0",
+								"commerce",
+								"payments",
+								"authorizations",
+								"{{authorization_id}}",
+								"reversals"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "**These requests are not necessary**. Authorization and Tokenization are initiated when you go through the checkout flow as a customer."
+		},
+		{
+			"name": "Capture",
+			"item": [
+				{
+					"name": "01 - Create Fulfillment Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"const fulfillment_order_id = response.fulfillmentOrderIds[0];",
+									"",
+									"pm.test(\"Fulfillment order has been created\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(fulfillment_order_id).not.to.be.null;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"fulfillment_order_id\", fulfillment_order_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderSummaryId\": \"{{order_summary_id}}\",\n    \"orderDeliveryGroupSummaryId\": \"{{order_delivery_group_summary_id}}\",\n    \"fulfillmentGroups\": [\n        {\n            \"fulfilledFromLocationId\": \"{{distribution_center_id}}\",\n            \"fulfillmentType\": \"warehouse\",\n            \"orderItemSummaries\": [\n                {\n                    \"orderItemSummaryId\": \"{{order_item_summary_id_1}}\",\n                    \"quantity\": 1\n                },\n                {\n                \t\"orderItemSummaryId\": \"{{order_item_summary_id_2}}\",\n                    \"quantity\": 1\n                }\n            ]\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v52.0/commerce/fulfillment/fulfillment-orders",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v52.0",
+								"commerce",
+								"fulfillment",
+								"fulfillment-orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "02 - Create Invoice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"const invoice_id = response.invoiceId;",
+									"",
+									"pm.test(\"Invoice has been created\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(invoice_id).not.to.be.null;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"invoice_id\", invoice_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v50.0/commerce/fulfillment/fulfillment-orders/{{fulfillment_order_id}}/actions/create-invoice",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v50.0",
+								"commerce",
+								"fulfillment",
+								"fulfillment-orders",
+								"{{fulfillment_order_id}}",
+								"actions",
+								"create-invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "03 - Capture",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"const capture_job_id = response.backgroundOperationId;",
+									"",
+									"pm.test(\"Capture initiated successfully\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(capture_job_id).not.to.be.null;",
+									"    pm.expect(response.success).to.be.true;",
+									"    pm.expect(response.errors).to.be.empty;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"capture_job_id\", capture_job_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"invoiceId\": \"{{invoice_id}}\"\r\n}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v50.0/commerce/order-management/order-summaries/{{order_summary_id}}/async-actions/ensure-funds-async",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v50.0",
+								"commerce",
+								"order-management",
+								"order-summaries",
+								"{{order_summary_id}}",
+								"async-actions",
+								"ensure-funds-async"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "04 - Check Capture Job Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Capture resolved successfully\", () => {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(response.Status).not.to.be.eql(\"Error\");",
+									"    pm.expect(response.Error).to.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/services/data/v50.0/sobjects/BackgroundOperation/{{capture_job_id}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v50.0",
+								"sobjects",
+								"BackgroundOperation",
+								"{{capture_job_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Refund",
+			"item": [
+				{
+					"name": "01 - Return Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"if(response.output && response.output.errors.length) {",
+									"    console.error(response.output.errors[0].message);",
+									"    console.info('Make sure you update the fulfillment order status to \"Fulfilled\"')",
+									"    return;",
+									"}",
+									"",
+									"const change_order_id = response.changeOrderId;",
+									"",
+									"pm.test(\"Change Order successfully created\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(change_order_id).not.to.be.null;",
+									"    pm.expect(response.success).to.be.true;",
+									"    pm.expect(response.errors).to.be.empty;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"change_order_id\", change_order_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"changeItems\": [\r\n        {\r\n            \"orderItemSummaryId\": \"{{order_item_summary_id_2}}\",\r\n            \"quantity\": 1.0,\r\n            \"reason\": \"Unknown\",\r\n            \"shippingReductionFlag\": true\r\n        }\r\n    ]\r\n}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v49.0/commerce/order-management/order-summaries/{{order_summary_id}}/actions/submit-return",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v49.0",
+								"commerce",
+								"order-management",
+								"order-summaries",
+								"{{order_summary_id}}",
+								"actions",
+								"submit-return"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "02 - Create Credit Memo for Change Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"if(response.output && response.output.errors.length) {",
+									"    console.error(response.output.errors[0].message);",
+									"    return;",
+									"}",
+									"",
+									"const credit_memo_id = response.creditMemoId;",
+									"",
+									"pm.test(\"Credit Memo successfully created\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(credit_memo_id).not.to.be.null;",
+									"    pm.expect(response.success).to.be.true;",
+									"    pm.expect(response.errors).to.be.empty;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"credit_memo_id\", credit_memo_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"changeOrderIds\": [\r\n    \"{{change_order_id}}\"\r\n  ]\r\n}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v49.0/commerce/order-management/order-summaries/{{order_summary_id}}/actions/create-credit-memo",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v49.0",
+								"commerce",
+								"order-management",
+								"order-summaries",
+								"{{order_summary_id}}",
+								"actions",
+								"create-credit-memo"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "03 - Refund",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"const refund_job_id = response.backgroundOperationId;",
+									"",
+									"pm.test(\"Refund initiated successfully\", () => {",
+									"    pm.response.to.have.status(201);",
+									"    pm.expect(refund_job_id).not.to.be.null;",
+									"    pm.expect(response.success).to.be.true;",
+									"    pm.expect(response.errors).to.be.empty;",
+									"});",
+									"",
+									"pm.collectionVariables.set(\"refund_job_id\", refund_job_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"creditMemoId\": \"{{credit_memo_id}}\"\r\n}"
+						},
+						"url": {
+							"raw": "{{host}}/services/data/v52.0/commerce/order-management/order-summaries/{{order_summary_id}}/async-actions/ensure-refunds-async",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v52.0",
+								"commerce",
+								"order-management",
+								"order-summaries",
+								"{{order_summary_id}}",
+								"async-actions",
+								"ensure-refunds-async"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "04 - Check Refund Job Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"",
+									"pm.test(\"Refund resolved successfully\", () => {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(response.Status).not.to.be.eql(\"Error\");",
+									"    pm.expect(response.Error).to.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/services/data/v50.0/sobjects/BackgroundOperation/{{refund_job_id}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"services",
+								"data",
+								"v50.0",
+								"sobjects",
+								"BackgroundOperation",
+								"{{refund_job_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Get Data",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const response = pm.response.json();",
+							"",
+							"console.log(response.compositeResponse);",
+							"",
+							"const payment_gateway_id = response.compositeResponse[0].body.records[0].Id;",
+							"const order_summary_id = response.compositeResponse[1].body.records[0].Id;",
+							"const order_item_summary_id_1 = response.compositeResponse[1].body.records[0].OrderItemSummaries.records[0].Id;",
+							"const order_item_summary_id_2 = response.compositeResponse[1].body.records[0].OrderItemSummaries.records[1].Id;",
+							"const order_delivery_group_summary_id = response.compositeResponse[1].body.records[0].OrderDeliveryGroupSummaries.records[0].Id;",
+							"const distribution_center_id = response.compositeResponse[2].body.records[0].Id;",
+							"const authorization_id = response.compositeResponse[3].body.records[0].Id;",
+							"const account_id = response.compositeResponse[3].body.records[0].AccountId;",
+							"",
+							"pm.test(\"All data has been retrieved\", () => {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect(account_id).not.to.be.null;",
+							"    pm.expect(payment_gateway_id).not.to.be.null;",
+							"    pm.expect(order_summary_id).not.to.be.null;",
+							"    pm.expect(order_item_summary_id_1).not.to.be.null;",
+							"    pm.expect(order_item_summary_id_2).not.to.be.null;",
+							"    pm.expect(order_delivery_group_summary_id).not.to.be.null;",
+							"    pm.expect(distribution_center_id).not.to.be.null;",
+							"    pm.expect(authorization_id).not.to.be.null;",
+							"});",
+							"",
+							"pm.collectionVariables.set(\"account_id\", account_id);",
+							"pm.collectionVariables.set(\"payment_gateway_id\", payment_gateway_id);",
+							"pm.collectionVariables.set(\"order_summary_id\", order_summary_id);",
+							"pm.collectionVariables.set(\"order_item_summary_id_1\", order_item_summary_id_1);",
+							"pm.collectionVariables.set(\"order_item_summary_id_2\", order_item_summary_id_2);",
+							"pm.collectionVariables.set(\"order_delivery_group_summary_id\", order_delivery_group_summary_id);",
+							"pm.collectionVariables.set(\"distribution_center_id\", distribution_center_id);",
+							"pm.collectionVariables.set(\"authorization_id\", authorization_id);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"allOrNone\": false,\n    \"compositeRequest\": [\n        {\n        \t\"method\": \"GET\",\n        \t\"url\": \"/services/data/v48.0/query/?q=SELECT+Id+FROM+PaymentGateway+WHERE+PaymentGatewayName+=+'Adyen'+LIMIT+1\",\n            \"referenceId\": \"refPaymentGateway\"\n        },\n        {\n        \t\"method\": \"GET\",\n        \t\"url\": \"/services/data/v48.0/query/?q=SELECT+Id,(SELECT+Id+FROM+OrderItemSummaries),(SELECT+Id+FROM+OrderDeliveryGroupSummaries+LIMIT+1)+FROM+OrderSummary+ORDER+BY+CreatedDate+DESC+LIMIT+1\",\n            \"referenceId\": \"refOrderSummary\"\n        },\n        {\n        \t\"method\": \"GET\",\n        \t\"url\": \"/services/data/v48.0/query/?q=SELECT+Id+FROM+Location+LIMIT+1\",\n            \"referenceId\": \"refOrderItemSummaries\"\n        },\n        {\n        \t\"method\": \"GET\",\n        \t\"url\": \"/services/data/v48.0/query/?q=SELECT+Id,AccountId+FROM+PaymentAuthorization+ORDER+BY+CreatedDate+DESC+LIMIT+1\",\n            \"referenceId\": \"refPaymentAuthorization\"\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "{{host}}/services/data/v48.0/composite",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"services",
+						"data",
+						"v48.0",
+						"composite"
+					]
+				},
+				"description": "Just a clone for now"
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "host",
+			"value": "https://adyenqa1.my.salesforce.com"
+		},
+		{
+			"key": "access_token",
+			"value": ""
+		},
+		{
+			"key": "account_id",
+			"value": ""
+		},
+		{
+			"key": "payment_gateway_id",
+			"value": ""
+		},
+		{
+			"key": "payment_method_id",
+			"value": ""
+		},
+		{
+			"key": "gateway_token",
+			"value": ""
+		},
+		{
+			"key": "authorization_id",
+			"value": ""
+		},
+		{
+			"key": "order_summary_id",
+			"value": ""
+		},
+		{
+			"key": "order_item_summary_id_1",
+			"value": ""
+		},
+		{
+			"key": "order_item_summary_id_2",
+			"value": ""
+		},
+		{
+			"key": "order_delivery_group_summary_id",
+			"value": ""
+		},
+		{
+			"key": "distribution_center_id",
+			"value": ""
+		},
+		{
+			"key": "fulfillment_order_id",
+			"value": ""
+		},
+		{
+			"key": "invoice_id",
+			"value": ""
+		},
+		{
+			"key": "capture_job_id",
+			"value": ""
+		},
+		{
+			"key": "change_order_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "credit_memo_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refund_job_id",
+			"value": ""
+		}
+	]
+}

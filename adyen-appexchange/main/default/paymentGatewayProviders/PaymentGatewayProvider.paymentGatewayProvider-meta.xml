@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PaymentGatewayProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apexAdapter>AdyenAsyncAdapter</apexAdapter>
+    <idempotencySupported>Yes</idempotencySupported>
+    <masterLabel>CommercePaymentsAdyenAsyncAdapter</masterLabel>
+    <!-- <isProtected>true</isProtected> -->
+    <comments>Comments</comments>
+</PaymentGatewayProvider>
