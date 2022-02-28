@@ -7,9 +7,7 @@ public with sharing class AdyenService {
     public static final String REFERENCE_MERGE_FIELD   = '{paymentPspReference}';
     public static final String MERCHANT_USERNAME       = '{!$Credential.UserName}';
     public static final String MERCHANT_API_KEY        = '{!$Credential.Password}';
-    public static final Integer HTTP_SUCCESS_CODE      = 200;
-    public static final Integer HTTP_ERROR_CODE        = 400;
-    public static final Integer HTTP_SERVER_ERROR_CODE = 500;
+
 
     @TestVisible
     private static final String TEST_ENDPOINT          = 'https://test.com';

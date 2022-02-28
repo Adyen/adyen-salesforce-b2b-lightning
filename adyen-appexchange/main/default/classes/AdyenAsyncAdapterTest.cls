@@ -22,7 +22,7 @@ global class AdyenAsyncAdapterTest {
 
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setStatusCode(AdyenService.HTTP_SUCCESS_CODE);
+            res.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             Map<String, Object> responseBody = new Map<String, Object> {
                 'pspReference' => TEST_PSP_REFERENCE,
                 'status' => 'recieved'
@@ -143,7 +143,7 @@ global class AdyenAsyncAdapterTest {
         Test.setMock(HttpCalloutMock.class, new EchoHttpMock());
         Test.startTest();
 
-        AdyenPaymentHelper.TEST_PMID = [SELECT Id FROM CardPaymentMethod ORDER BY CreatedDate DESC LIMIT 1].Id;
+        AdyenConstants.TEST_PMID = [SELECT Id FROM CardPaymentMethod ORDER BY CreatedDate DESC LIMIT 1].Id;
 
         Id paymentGatewayId = [SELECT Id FROM PaymentGateway ORDER BY CreatedDate DESC LIMIT 1].Id;
         CommercePayments.PaymentMethodTokenizationRequest tokenizeRequest = new CommercePayments.PaymentMethodTokenizationRequest(paymentGatewayId);
@@ -209,7 +209,7 @@ global class AdyenAsyncAdapterTest {
         a.currency_x = 'USD';
         a.value = (Long)Integer.valueOf(TEST_AMOUNT*10);
         nri.amount = a;
-        nri.eventCode = AdyenPaymentHelper.NOTIFICATION_REQUEST_TYPE_CAPTURE;
+        nri.eventCode = AdyenConstants.NOTIFICATION_REQUEST_TYPE_CAPTURE;
         nri.originalReference = TEST_PSP_REFERENCE;
         nri.pspReference = TEST_PSP_REFERENCE;
         nri.success = 'true';
@@ -220,7 +220,7 @@ global class AdyenAsyncAdapterTest {
             'live' => false,
             'notificationItems' => new List<AdyenService.NotificationItems>{item}
         };
-        AdyenPaymentHelper.TEST_NR_BODY = JSON.serialize(requestBody);
+        AdyenConstants.TEST_NR_BODY = JSON.serialize(requestBody);
 
         Test.startTest();
         CommercePayments.GatewayNotificationResponse captureResponse = adyenAdapter.processNotification(null);

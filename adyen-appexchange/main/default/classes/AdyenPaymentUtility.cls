@@ -1,24 +1,5 @@
 public with sharing class AdyenPaymentUtility {
 
-
-    public static final Set<String> threeDecimalCurrencies = new Set<String> {
-        'BHD','IQD','JOD','KWD','LWD','OMR','TND'
-    };
-    public static final Set<String> zeroDecimalCurrencies  = new Set<String> {
-        'CVE', 'DJF', 'GNF', 'IDR', 'JPY', 'KMF', 'KRW',
-        'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
-    };
-
-    private static final CommercePayments.SalesforceResultCodeInfo SUCCESS_SALESFORCE_RESULT_CODE_INFO =
-            new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Success);
-
-    private static final CommercePayments.SalesforceResultCodeInfo DECLINE_SALESFORCE_RESULT_CODE_INFO =
-            new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Decline);
-
-    @TestVisible private static final String NOTIFICATION_REQUEST_TYPE_CAPTURE  = 'capture';
-    @TestVisible private static final String NOTIFICATION_REQUEST_TYPE_REFUND   = 'refund';
-    @TestVisible private static final String NOTIFICATION_ACCEPTED_RESPONSE     = '[accepted]';
-
     /**
      * Convert a request body from the adyen apex library into an api consumable json string
      * (strips the '_x' from attributes that would otherwise be Apex reserved keywords)
@@ -113,7 +94,6 @@ public with sharing class AdyenPaymentUtility {
         } else return null;
     }
 
-
     /**
      *  Retrieves custom meta data associated with Adyen (Endpoint info) pulls all fields.
      *
@@ -156,13 +136,12 @@ public with sharing class AdyenPaymentUtility {
         } else return null;
     }
 
-
     /**
-     * Retrieve PaymentAuthorizations Info.
-     *
-     * @param paymentAuthId The sObject PaymentAuthorizationId
-     * @return a PaymentAuthorization sObject.
-     */
+    * Retrieve PaymentAuthorizations Info.
+    *
+    * @param paymentAuthId The sObject PaymentAuthorizationId
+    * @return a PaymentAuthorization sObject.
+    */
     public static PaymentAuthorization retrievePaymentAuthorization(Id paymentAuthId) {
         if (
             Schema.sObjectType.PaymentAuthorization.fields.Id.isAccessible() &&
@@ -190,13 +169,12 @@ public with sharing class AdyenPaymentUtility {
     }
 
     /**
-     * Check if Klarna Order.
-     *
-     * @param paymentAuthId The sObject PaymentAuthorizationId
-     * @return Boolean denoting if the Authorization Id belongs to a Klarna Order.
-     */
+    * Check if Klarna Order.
+    *
+    * @param paymentAuthId The sObject PaymentAuthorizationId
+    * @return Boolean denoting if the Authorization Id belongs to a Klarna Order.
+    */
     public static Boolean checkIfKlarnaOrderFromAuthorization(PaymentAuthorization pa) {
-
         if(pa == null) throw new AdyenAsyncAdapter.GatewayException('Payment Authorization Missing');
         if(Test.isRunningTest()) return true;
 
@@ -205,22 +183,47 @@ public with sharing class AdyenPaymentUtility {
         if(pa.OrderPaymentSummary?.OrderSummary?.Adyen_paymentMethod__c != null) {
             isKlarnaOrder = pa.OrderPaymentSummary.OrderSummary.Adyen_paymentMethod__c.containsIgnoreCase('klarna');
         }
-
-        // String soql = '';
-        // soql =  'SELECT adyenPaymentMethod__c FROM PaymentAuthorization where Id = :paymentAuthId';
-
-        // List<PaymentAuthorization> paymentAuthorizations = Database.query(soql);
-        
-        // String adyenPaymentMethod;
-        // if(paymentAuthorizations.isNotEmpty()) {
-        //     if (paymentAuthorizations[0].adyenPaymentMethod__c != null) {
-        //         adyenPaymentMethod = paymentAuthorizations[0].adyenPaymentMethod__c;
-        //         if(adyenPaymentMethod.containsIgnoreCase('klarna')){
-        //             isKlarnaOrder = true;
-        //         }
-        //     }
-        // }
         return isKlarnaOrder;
+    }
+
+    /**
+    * For payment methods requiring Open Invoice data (e.g., Klarna), append invoice data.
+    *
+    * @param pa PaymentAuthorization
+    * @return Map<String, Object> invoice data in key-value pairs
+    */
+    public static Map<String, Object> getInvoiceData(PaymentAuthorization pa) {
+            // Get invoice id
+            List<Id> invoiceIds = new List<Id>();
+            if(pa?.OrderPaymentSummary?.OrderSummary?.Invoices != null)
+                for(Invoice i : pa?.OrderPaymentSummary?.OrderSummary?.Invoices) invoiceIds.add(i.Id);
+
+            // Pull all InvoiceLines.  Send adjustments + charge vs shipping
+            Integer invoiceLineCount = 0;
+            Map<String, Object> additionalData = new Map<String, Object>();
+
+            for(InvoiceLine invoiceLine : [SELECT Id, Product2.Name, Quantity, CurrencyIsoCode, ChargeAmount,
+                                                ChargeTaxAmount, ChargeAmountWithTax, Type
+                                            FROM InvoiceLine
+                                            WHERE Type = 'Charge'
+                                            AND InvoiceId IN :invoiceIds]) {
+
+                Decimal itemAmount = Integer.valueOf(invoiceLine.ChargeAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
+                Decimal itemVatAmount = Integer.valueOf(invoiceLine.ChargeTaxAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
+                Decimal itemVatPercentage = invoiceLine.ChargeAmount / invoiceLine.ChargeTaxAmount;
+
+                invoiceLineCount++;
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.currencyCode',          invoiceLine.CurrencyIsoCode);
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.description',           invoiceLine.Product2.Name);
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemAmount',            String.valueOf(itemAmount));
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatAmount',         String.valueOf(itemVatAmount));
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatPercentage',     String.valueOf(itemVatPercentage));
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.numberOfItems',         String.valueOf(Integer.valueOf(invoiceLine.Quantity)));
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.productUrl',            '');
+                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.imageUrl',              '');
+            }
+            additionalData.put('openinvoicedata.numberOfLines', invoiceLineCount);
+            return additionalData;
     }
 
     /**
@@ -265,8 +268,8 @@ public with sharing class AdyenPaymentUtility {
     }
 
     public static Integer getAmountMultiplier(String currencyCode) {
-        if(threeDecimalCurrencies.contains(currencyCode)) return 1000;
-        if(zeroDecimalCurrencies.contains(currencyCode))  return 1;
+        if(AdyenConstants.threeDecimalCurrencies.contains(currencyCode)) return 1000;
+        if(AdyenConstants.zeroDecimalCurrencies.contains(currencyCode))  return 1;
         return 100;
     }
 
@@ -318,7 +321,82 @@ public with sharing class AdyenPaymentUtility {
         exPlatform.version = '2020_winter';
         exPlatform.integrator = integratorName;
         info.externalPlatform = exPlatform;
-
         return info;
+    }
+
+    /**
+    * Create a modification request by populating required properties (payment/refund)
+    *
+    * @return ModificationRequest to send to Adyen.
+    */
+    public ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String adapterName, String currencyCode, Double amount, String pspReference) {
+       if (paymentType == CommercePayments.RequestType.Capture) {
+         CaptureRequest modRequest = new CaptureRequest();
+       } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
+         RefundRequest modRequest = new RefundRequest();
+       }
+       if(String.isBlank(adapterName)) adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
+       Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
+
+       modRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
+       modRequest.originalReference = pspReference;
+       modRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
+       modRequest.amount = new Amount();
+       modRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+       modRequest.amount.currency_x = currencyCode;
+       return modRequest;
+    }
+
+    /**
+    * Send modification request (payment/refund) to Adyen platform
+    *
+    * @return response from adyen platform.
+    */
+    public ModificationResponse getAdyenResponse(CommercePayments.RequestType paymentType, ModificationRequest modRequest, String endPoint) {
+        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(modRequest));
+        AdyenService client = new AdyenService(adyenAdapterMdt);
+        client.setEndpoint(endPoint);
+        client.setBody(body);
+        client.setReference(modRequest.originalReference);
+        HttpResponse response = client.execute();
+        if (paymentType == CommercePayments.RequestType.Capture) {
+            CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
+        } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
+            RefundResponse adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), RefundResponse.class);
+        }
+        return adyenResponse;
+    }
+
+     /**
+     * @param adyenResponse: Response from Adyens api after requesting a capture/refund
+     * @return CommercePayments.GatewayResponse with populated properties.
+     */
+
+    public CommercePayments.GatewayResponse processAdyensResponse(HttpResponse adyenResponse, Double amount, CommercePayments.RequestType paymentType) {
+        String gatewayMessage = '';
+        if (paymentType == CommercePayments.RequestType.Capture) {
+             CommercePayments.CaptureResponse salesforceResponse = new CommercePayments.CaptureResponse();
+             gatewayMessage = '[capture-received]';
+        } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
+             CommercePayments.ReferencedRefundRequest salesforceResponse = new CommercePayments.ReferencedRefundRequest();
+             gatewayMessage = '[refund-received]';
+        }
+        salesforceResponse.setAsync(true);
+        salesforceResponse.setAmount(amount);
+        salesforceResponse.setGatewayDate(System.now());
+        salesforceResponse.setGatewayMessage(adyenResponse.status);
+        salesforceResponse.setGatewayReferenceDetails(adyenResponse.reference);
+        salesforceResponse.setGatewayResultCode(adyenResponse.status);
+        salesforceResponse.setGatewayResultCodeDescription(adyenResponse.message);
+
+        if(adyenResponse != null && salesforceResponse.getStatusCode() != AdyenConstatns.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
+           salesforceResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
+           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+           if(salesforceResponse.status == 'received') salesforceResponse.setGatewayMessage(gatewayMessage);
+        } else {
+           salesforceResponse.setGatewayReferenceNumber(null);
+           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
+        }
+        return salesforceResponse;
     }
 }
