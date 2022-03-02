@@ -141,10 +141,9 @@ public with sharing class AdyenPaymentHelper {
 
         AuthorisationRequest libRequest = new AuthorisationRequest();
 
-        Double amount = AdyenPaymentUtility.normalizeAmount(authRequest.amount);
         libRequest.amount = new Amount();
         libRequest.amount.currency_x = currencyCode;
-        libRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+        libRequest.amount.value = (authRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
         
         CardDetails paymentMethod = new CardDetails();
         paymentMethod.storedPaymentMethodId = cpm.GatewayToken;
@@ -240,9 +239,8 @@ public with sharing class AdyenPaymentHelper {
         libRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
 
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : payment.CurrencyIsoCode.toUppercase();
-        Double amount = AdyenPaymentUtility.normalizeAmount(refundRequest.amount);
         libRequest.amount = new Amount();
-        libRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+        libRequest.amount.value = (refundRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
         libRequest.amount.currency_x = currencyCode;
 
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(libRequest));
@@ -323,7 +321,7 @@ public with sharing class AdyenPaymentHelper {
         client.setBody(body);
         client.setReference(pspReference);
 
-        return processCancelResponse(client.execute(), AdyenPaymentUtility.normalizeAmount(cancelRequest.amount));
+        return processCancelResponse(client.execute(), cancelRequest.amount);
     }
 
     public static CommercePayments.GatewayResponse processCancelResponse(HttpResponse response, Double amount) {

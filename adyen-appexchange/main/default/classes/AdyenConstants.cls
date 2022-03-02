@@ -19,14 +19,6 @@ public with sharing class AdyenConstants {
     @TestVisible
     public static final String NOTIFICATION_ACCEPTED_RESPONSE     = '[accepted]';
 
-    public static final Set<String> threeDecimalCurrencies = new Set<String> {
-        'BHD','IQD','JOD','KWD','LWD','OMR','TND'
-    };
-    public static final Set<String> zeroDecimalCurrencies  = new Set<String> {
-        'CVE', 'DJF', 'GNF', 'IDR', 'JPY', 'KMF', 'KRW',
-        'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
-    };
-
     public static final CommercePayments.SalesforceResultCodeInfo SUCCESS_SALESFORCE_RESULT_CODE_INFO =
             new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Success);
 
