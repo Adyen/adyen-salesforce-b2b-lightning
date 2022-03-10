@@ -204,40 +204,6 @@ public with sharing class AdyenPaymentHelper {
         }
     }
 
-
-@@ -1,4 +1,10 @@
-public with sharing class AdyenPaymentHelper {
-
-    @TestVisible
-    public static String TEST_PMID;
-    @TestVisible
-    public static String TEST_NR_BODY;
-
-     /**
-     *  Receives Payement Gateway Context from AdyenAsyncAdapter, looks at the context type and then invokes the appropriate Capture or Refund operation
-     *
-@@ -16,7 +22,7 @@ public with sharing class AdyenPaymentHelper {
-            if     (paymentRequestType == CommercePayments.RequestType.Tokenize)              return tokenize((CommercePayments.PaymentMethodTokenizationRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.Authorize)             return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return AdyenCaptureHelper.refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.AuthorizationReversal) return cancel((CommercePayments.AuthorizationReversalRequest)paymentRequest);
-            else return null;
-        } catch (Exception e) {
-@@ -132,7 +138,7 @@ public with sharing class AdyenPaymentHelper {
-        System.debug('---------->Adyen: enter authorize method');
-
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(AdyenConstants.DEFAULT_ADAPTER_NAME);
-        Id cpmId = Test.isRunningTest() ? AdyenConstants.TEST_PMID : authRequest.paymentMethod.Id;
-        Id cpmId = Test.isRunningTest() ? TEST_PMID : authRequest.paymentMethod.Id;
-        CardPaymentMethod cpm = [SELECT GatewayToken, GatewayTokenDetails, CardHolderName, Email
-                                 FROM CardPaymentMethod
-                                 WHERE Id = :cpmId];
-@@ -198,95 +204,6 @@ public with sharing class AdyenPaymentHelper {
-        }
-    }
-
     /**
      * Calls the Service to post a REFUND to Adyen. Evaluates the response wrapped in custom class Adyen and sets appropirate
      * props on CommercePayments.ReferenceRefundResponse.
