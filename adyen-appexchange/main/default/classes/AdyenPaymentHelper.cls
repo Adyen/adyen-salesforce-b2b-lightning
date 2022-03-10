@@ -1,4 +1,10 @@
 public with sharing class AdyenPaymentHelper {
+
+    @TestVisible
+    public static String TEST_PMID;
+    @TestVisible
+    public static String TEST_NR_BODY;
+
      /**
      *  Receives Payement Gateway Context from AdyenAsyncAdapter, looks at the context type and then invokes the appropriate Capture or Refund operation
      * 
@@ -16,7 +22,7 @@ public with sharing class AdyenPaymentHelper {
             if     (paymentRequestType == CommercePayments.RequestType.Tokenize)              return tokenize((CommercePayments.PaymentMethodTokenizationRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.Authorize)             return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
+            else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return AdyenCaptureHelper.refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.AuthorizationReversal) return cancel((CommercePayments.AuthorizationReversalRequest)paymentRequest);
             else return null;
         } catch (Exception e) {
@@ -132,7 +138,7 @@ public with sharing class AdyenPaymentHelper {
         System.debug('---------->Adyen: enter authorize method');
 
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(AdyenConstants.DEFAULT_ADAPTER_NAME);
-        Id cpmId = Test.isRunningTest() ? AdyenConstants.TEST_PMID : authRequest.paymentMethod.Id;
+        Id cpmId = Test.isRunningTest() ? TEST_PMID : authRequest.paymentMethod.Id;
         CardPaymentMethod cpm = [SELECT GatewayToken, GatewayTokenDetails, CardHolderName, Email
                                  FROM CardPaymentMethod
                                  WHERE Id = :cpmId];
@@ -196,95 +202,6 @@ public with sharing class AdyenPaymentHelper {
                 String.valueOf(body.get('message'))
             );
         }
-    }
-
-    /**
-     * Calls the Service to post a REFUND to Adyen. Evaluates the response wrapped in custom class Adyen and sets appropirate
-     * props on CommercePayments.ReferenceRefundResponse.
-     * * General flow is AdyenService to post request JSON --> populateReferencedRefundResponse
-     *
-     * @param refundRequest   The CommercePayments.ReferencedRefundRequest Object.
-     * @return refundResponse  The CommercePayments.ReferencedRefundResponse Object.
-     * 
-     * @see AdyenService
-     */
-    private static CommercePayments.GatewayResponse refund(CommercePayments.ReferencedRefundRequest refundRequest) {
-        
-        // Retrieve the Payment object
-        Payment payment = AdyenPaymentUtility.retrievePayment(refundRequest.PaymentId);
-
-        String errorMessage = null;
-        if(payment == null) errorMessage = 'Payment Info Missing';
-        if(refundRequest.amount == null) errorMessage = 'Payment Amount Missing';
-        if(errorMessage != null) throw new AdyenAsyncAdapter.GatewayException(errorMessage);
-
-        // By Default, retrieve the metadata key from the order's sales channel
-        String adapterName = payment.OrderPaymentSummary.OrderSummary.SalesChannel.ADYENMERCHANTID__c;
-
-        // Override config for this specific Payment (i.e., a pre-capture) or inherit override from the original PaymentAuthorization
-        if(String.isNotBlank(payment.adyenOverrideMerchantConfig__c))
-            adapterName = payment.adyenOverrideMerchantConfig__c;
-        if(String.isNotBlank(payment.PaymentAuthorization?.adyenOverrideMerchantConfig__c))
-            adapterName = payment.PaymentAuthorization.adyenOverrideMerchantConfig__c;
-        if(String.isBlank(adapterName))
-            adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
-
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName); 
-
-        CaptureRequest libRequest = new CaptureRequest();
-
-        String pspReference = (payment.OrderPaymentSummary.FullName == 'DeclineRefund' ? 'dummytransaction' : AdyenPaymentUtility.getRefundGatewayRefNumber(payment));
-        libRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
-        libRequest.originalReference = pspReference;
-        libRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-
-        String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : payment.CurrencyIsoCode.toUppercase();
-        libRequest.amount = new Amount();
-        libRequest.amount.value = (refundRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
-        libRequest.amount.currency_x = currencyCode;
-
-        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(libRequest));
-
-        AdyenService client = new AdyenService(adyenAdapterMdt);
-        client.setEndpoint(adyenAdapterMdt.Refund_Endpoint__c);
-        client.setBody(body);
-        client.setReference(pspReference);
-
-        return processRefundResponse(client.execute(), amount);
-    }
-
-    /**
-     * @param adyenResponse From Adyens api after requesting a refund
-     * @param refundResponse Our response to the platform that we will modify accordingly
-     * @return CommercePayments.ReferencedRefundResponse with populated properties.
-     */
-    private static CommercePayments.ReferencedRefundResponse processRefundResponse(HttpResponse response, Double amount) {
-
-        CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
-
-        //CommercePayments.GatewayErrorResponse gatewayErrorResponse;
-        CommercePayments.ReferencedRefundResponse refundResponse = new CommercePayments.ReferencedRefundResponse();
-        refundResponse.setAsync(true);
-        refundResponse.setAmount(amount);
-        refundResponse.setGatewayDate(System.now());
-        refundResponse.setGatewayMessage(adyenResponse.status);
-
-        if(adyenResponse != null && response.getStatusCode() != AdyenService.HTTP_ERROR_CODE) {
-            refundResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
-            if(adyenResponse.status == 'received') refundResponse.setGatewayMessage('[refund-received]');
-            refundResponse.setGatewayReferenceDetails(adyenResponse.reference);
-            refundResponse.setGatewayResultCode(adyenResponse.status);
-            refundResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            refundResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-        } else {
-            refundResponse.setGatewayReferenceNumber(null);
-            refundResponse.setGatewayMessage(adyenResponse.message);
-            refundResponse.setGatewayReferenceDetails(adyenResponse.message);
-            refundResponse.setGatewayResultCode(adyenResponse.status);
-            refundResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            refundResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
-        }
-        return refundResponse;
     }
 
     /**
@@ -430,7 +347,7 @@ public with sharing class AdyenPaymentHelper {
      * @see https://docs.adyen.com/development-resources/webhooks/understand-notifications
      */
     public static AdyenService.NotificationRequestItem parseAdyenNotificationRequest(CommercePayments.PaymentGatewayNotificationRequest notificationRequest) {
-        String requestBody = Test.isRunningTest() ? AdyenConstants.TEST_NR_BODY : AdyenPaymentUtility.makeSalesforceCompatible(notificationRequest.getRequestBody().toString());
+        String requestBody = Test.isRunningTest() ? TEST_NR_BODY : AdyenPaymentUtility.makeSalesforceCompatible(notificationRequest.getRequestBody().toString());
         AdyenService.AdyenNotification adyenNotification  = (AdyenService.AdyenNotification) JSON.deserialize(requestBody, AdyenService.AdyenNotification.class);
         AdyenService.NotificationRequestItem notificationRequestItem = new AdyenService.NotificationRequestItem();
         if(adyenNotification != null) {

@@ -143,7 +143,7 @@ global class AdyenAsyncAdapterTest {
         Test.setMock(HttpCalloutMock.class, new EchoHttpMock());
         Test.startTest();
 
-        AdyenConstants.TEST_PMID = [SELECT Id FROM CardPaymentMethod ORDER BY CreatedDate DESC LIMIT 1].Id;
+        AdyenPaymentHelper.TEST_PMID = [SELECT Id FROM CardPaymentMethod ORDER BY CreatedDate DESC LIMIT 1].Id;
 
         Id paymentGatewayId = [SELECT Id FROM PaymentGateway ORDER BY CreatedDate DESC LIMIT 1].Id;
         CommercePayments.PaymentMethodTokenizationRequest tokenizeRequest = new CommercePayments.PaymentMethodTokenizationRequest(paymentGatewayId);
@@ -220,7 +220,7 @@ global class AdyenAsyncAdapterTest {
             'live' => false,
             'notificationItems' => new List<AdyenService.NotificationItems>{item}
         };
-        AdyenConstants.TEST_NR_BODY = JSON.serialize(requestBody);
+        AdyenPaymentHelper.TEST_NR_BODY = JSON.serialize(requestBody);
 
         Test.startTest();
         CommercePayments.GatewayNotificationResponse captureResponse = adyenAdapter.processNotification(null);

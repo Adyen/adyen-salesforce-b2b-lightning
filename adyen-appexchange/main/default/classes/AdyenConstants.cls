@@ -1,8 +1,4 @@
 public with sharing class AdyenConstants {
-    @TestVisible
-    public static String TEST_PMID;
-    @TestVisible
-    public static String TEST_NR_BODY;
 
     @TestVisible
     public static final String DEFAULT_ADAPTER_NAME         = 'AdyenDefault';
