@@ -349,17 +349,13 @@ public with sharing class AdyenPaymentUtility {
     *
     * @return ModificationRequest to send to Adyen.
     */
-    public ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String adapterName, String currencyCode, Double amount, String pspReference) {
+    public ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String currencyCode, Double amount, String pspReference) {
+       ModificationRequest modRequest;
        if (paymentType == CommercePayments.RequestType.Capture) {
-         CaptureRequest modRequest = new CaptureRequest();
+         modRequest = new CaptureRequest();
        } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
-         RefundRequest modRequest = new RefundRequest();
+         modRequest = new RefundRequest();
        }
-       if (String.isBlank(adapterName)) {
-        adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
-       }
-       Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
-
        modRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
        modRequest.originalReference = pspReference;
        modRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
@@ -375,6 +371,7 @@ public with sharing class AdyenPaymentUtility {
     * @return response from adyen platform.
     */
     public ModificationResponse sendModificationRequest(CommercePayments.RequestType paymentType, ModificationRequest modRequest, String endPoint) {
+        ModificationResponse adyenResponse;
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(modRequest));
         AdyenService client = new AdyenService(adyenAdapterMdt);
         client.setEndpoint(endPoint);
@@ -382,9 +379,9 @@ public with sharing class AdyenPaymentUtility {
         client.setReference(modRequest.originalReference);
         HttpResponse response = client.execute();
         if (paymentType == CommercePayments.RequestType.Capture) {
-            CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
+            adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
         } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
-            RefundResponse adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), RefundResponse.class);
+            adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), RefundResponse.class);
         }
         return adyenResponse;
     }
@@ -396,11 +393,12 @@ public with sharing class AdyenPaymentUtility {
 
     public CommercePayments.GatewayResponse processAdyenResponse(HttpResponse adyenResponse, Double amount, CommercePayments.RequestType paymentType) {
         String gatewayMessage = '';
+        CommercePayments.GatewayResponse salesforceResponse;
         if (paymentType == CommercePayments.RequestType.Capture) {
-             CommercePayments.CaptureResponse salesforceResponse = new CommercePayments.CaptureResponse();
+             salesforceResponse = new CommercePayments.CaptureResponse();
              gatewayMessage = '[capture-received]';
         } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
-             CommercePayments.ReferencedRefundRequest salesforceResponse = new CommercePayments.ReferencedRefundRequest();
+             salesforceResponse = new CommercePayments.ReferencedRefundRequest();
              gatewayMessage = '[refund-received]';
         }
         salesforceResponse.setAsync(true);

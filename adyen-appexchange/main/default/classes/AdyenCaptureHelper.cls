@@ -29,7 +29,7 @@ public with sharing class AdyenCaptureHelper {
         String adapterName = String.isNotEmpty(pa.adyenOverrideMerchantConfig__c) ? pa.adyenOverrideMerchantConfig__c : pa.OrderPaymentSummary?.OrderSummary?.SalesChannel?.ADYENMERCHANTID__c;
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : pa.CurrencyIsoCode;
-        ModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.Capture, adapterName, currencyCode, captureRequest.amount, pspReference);
+        ModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.Capture, currencyCode, captureRequest.amount, pspReference);
         if(AdyenPaymentUtility.checkIfKlarnaOrderFromAuthorization(pa)) {
             Map<String, Object> additionalData = AdyenPaymentUtility.getInvoiceData(pa);
             modRequest.additionalData = JSON.serialize(additionalData);
@@ -37,6 +37,6 @@ public with sharing class AdyenCaptureHelper {
         modRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
 
         ModificationResponse modResponse = AdyenPaymentUtility.sendModificationRequest(CommercePayments.RequestType.Capture, modRequest, adyenAdapterMdt.Capture_Endpoint__c);
-        return AdyenPaymentUtility.processAdyenResponse(modResponse, amount, CommercePayments.RequestType.Capture);
+        return AdyenPaymentUtility.processAdyenResponse(modResponse, captureRequest.amount, CommercePayments.RequestType.Capture);
     }
 }
