@@ -22,7 +22,7 @@ global class AdyenAsyncAdapterTest {
 
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setStatusCode(AdyenService.HTTP_SUCCESS_CODE);
+            res.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             Map<String, Object> responseBody = new Map<String, Object> {
                 'pspReference' => TEST_PSP_REFERENCE,
                 'status' => 'recieved'
@@ -209,7 +209,7 @@ global class AdyenAsyncAdapterTest {
         a.currency_x = 'USD';
         a.value = (Long)Integer.valueOf(TEST_AMOUNT*10);
         nri.amount = a;
-        nri.eventCode = AdyenPaymentHelper.NOTIFICATION_REQUEST_TYPE_CAPTURE;
+        nri.eventCode = AdyenConstants.NOTIFICATION_REQUEST_TYPE_CAPTURE;
         nri.originalReference = TEST_PSP_REFERENCE;
         nri.pspReference = TEST_PSP_REFERENCE;
         nri.success = 'true';

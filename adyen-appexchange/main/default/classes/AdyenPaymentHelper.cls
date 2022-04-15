@@ -1,37 +1,11 @@
 public with sharing class AdyenPaymentHelper {
-    
-    private static final CommercePayments.SalesforceResultCodeInfo SUCCESS_SALESFORCE_RESULT_CODE_INFO = 
-        new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Success);
-    private static final CommercePayments.SalesforceResultCodeInfo DECLINE_SALESFORCE_RESULT_CODE_INFO = 
-        new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Decline);
-    private static final CommercePayments.SalesforceResultCodeInfo SYSTEMERROR_SALESFORCE_RESULT_CODE_INFO = 
-        new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.SystemError);
-    private static final CommercePayments.SalesforceResultCodeInfo VALIDATIONERROR_SALESFORCE_RESULT_CODE_INFO = 
-        new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.ValidationError);
-    
-    @TestVisible
-    private static String TEST_PMID;
-    @TestVisible
-    private static String TEST_NR_BODY;
-    
-    @TestVisible
-    private static final String DEFAULT_ADAPTER_NAME         = 'AdyenDefault';
-    @TestVisible
-    private static final String NOTIFICATION_REQUEST_TYPE_CANCEL = 'CANCELLATION';
-    @TestVisible
-    private static final String NOTIFICATION_REQUEST_TYPE_AUTHORISE = 'AUTHORISATION';
-    @TestVisible
-    private static final String NOTIFICATION_REQUEST_TYPE_CAPTURE = 'CAPTURE';
-    @TestVisible
-    private static final String NOTIFICATION_REQUEST_TYPE_REFUND = 'REFUND';
-    @TestVisible
-    private static final String NOTIFICATION_REQUEST_TYPE_CAPTURE_FAILED = 'capture-failed';
-    @TestVisible
-    private static final String NOTIFICATION_ACCEPTED_RESPONSE = '[accepted] ';
 
-    public static final String  APEX_RESERVED_CURRENCY_FIELD    = 'currency_x'; // allows deserialization of reserved words.
+    @TestVisible
+    public static String TEST_PMID;
+    @TestVisible
+    public static String TEST_NR_BODY;
 
-    /**
+     /**
      *  Receives Payement Gateway Context from AdyenAsyncAdapter, looks at the context type and then invokes the appropriate Capture or Refund operation
      * 
      * @param paymentGatewayContext
@@ -47,7 +21,7 @@ public with sharing class AdyenPaymentHelper {
         try {
             if     (paymentRequestType == CommercePayments.RequestType.Tokenize)              return tokenize((CommercePayments.PaymentMethodTokenizationRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.Authorize)             return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.Capture)               return capture((CommercePayments.CaptureRequest)paymentRequest);
+            else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.AuthorizationReversal) return cancel((CommercePayments.AuthorizationReversalRequest)paymentRequest);
             else return null;
@@ -66,7 +40,7 @@ public with sharing class AdyenPaymentHelper {
 
         System.debug('--------->Adyen: enter tokenize method');
 
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(DEFAULT_ADAPTER_NAME);
+        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(AdyenConstants.DEFAULT_ADAPTER_NAME);
         
         // The Auth request body is the same as tokenize
         AuthorisationRequest libRequest = new AuthorisationRequest();
@@ -132,7 +106,7 @@ public with sharing class AdyenPaymentHelper {
                 Map<String,Object> additionalData = (Map<String,Object>)body.get('additionalData');
                 tokenizeResponse.setGatewayToken((String)additionalData.get('recurring.recurringDetailReference'));
                 tokenizeResponse.setGatewayTokenDetails((String)additionalData.get('recurring.shopperReference'));
-                tokenizeResponse.setSalesforceResultCodeInfo(SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+                tokenizeResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
             } else {
                 tokenizeResponse.setGatewayResultCodeDescription((String)body.get('refusalReason'));
                 tokenizeResponse.setSalesforceResultCodeInfo(DECLINE_SALESFORCE_RESULT_CODE_INFO);
@@ -163,7 +137,7 @@ public with sharing class AdyenPaymentHelper {
 
         System.debug('---------->Adyen: enter authorize method');
 
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(DEFAULT_ADAPTER_NAME);
+        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(AdyenConstants.DEFAULT_ADAPTER_NAME);
         Id cpmId = Test.isRunningTest() ? TEST_PMID : authRequest.paymentMethod.Id;
         CardPaymentMethod cpm = [SELECT GatewayToken, GatewayTokenDetails, CardHolderName, Email
                                  FROM CardPaymentMethod
@@ -173,10 +147,9 @@ public with sharing class AdyenPaymentHelper {
 
         AuthorisationRequest libRequest = new AuthorisationRequest();
 
-        Double amount = AdyenPaymentUtility.normalizeAmount(authRequest.amount);
         libRequest.amount = new Amount();
         libRequest.amount.currency_x = currencyCode;
-        libRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+        libRequest.amount.value = (authRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
         
         CardDetails paymentMethod = new CardDetails();
         paymentMethod.storedPaymentMethodId = cpm.GatewayToken;
@@ -210,7 +183,7 @@ public with sharing class AdyenPaymentHelper {
             if(resultCode == 'Authorised') {
                 Map<String,Object> additionalData = (Map<String,Object>)body.get('additionalData');
                 authResponse.setGatewayAuthCode((String)additionalData.get('authCode'));
-                authResponse.setSalesforceResultCodeInfo(SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+                authResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
             } else {
                 authResponse.setGatewayResultCodeDescription((String)body.get('refusalReason'));
                 authResponse.setSalesforceResultCodeInfo(DECLINE_SALESFORCE_RESULT_CODE_INFO);
@@ -232,128 +205,17 @@ public with sharing class AdyenPaymentHelper {
     }
 
     /**
-     * invoked by handleFulfillmentOrderStatusChange to capture funds with Adyen
-     * @param captureRequest 
-     * @return `CommercePayments.GatewayResponse`
-     */
-    private static CommercePayments.GatewayResponse capture(CommercePayments.CaptureRequest captureRequest) {
-        
-        // Retrieve the PaymentAuthorization
-        PaymentAuthorization pa = AdyenPaymentUtility.retrievePaymentAuthorization(captureRequest.paymentAuthorizationId);
-
-        String errorMessage = null;
-        if(pa == null) errorMessage = 'Payment Authorization Missing';
-        if(captureRequest.amount == null) errorMessage = 'Payment Amount Missing';
-        String pspReference = AdyenPaymentUtility.getCaptureGatewayRefNumber(pa);
-        if(String.isBlank(pspReference)) errorMessage = 'PspReference Missing';
-        if(errorMessage != null) throw new AdyenAsyncAdapter.GatewayException(errorMessage);
-
-        // By Default, retrieve the metadata key from the order's sales channel
-        String adapterName = String.isNotEmpty(pa.adyenOverrideMerchantConfig__c) ? pa.adyenOverrideMerchantConfig__c : pa.OrderPaymentSummary?.OrderSummary?.SalesChannel?.ADYENMERCHANTID__c; 
-        if(String.isBlank(adapterName)) adapterName = DEFAULT_ADAPTER_NAME;
-
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
-    
-        CaptureRequest libRequest = new CaptureRequest();
-        libRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
-        libRequest.originalReference = pspReference;
-        libRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-
-        String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : pa.CurrencyIsoCode;
-        Double amount = AdyenPaymentUtility.normalizeAmount(captureRequest.amount);
-        libRequest.amount = new Amount();
-        libRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
-        libRequest.amount.currency_x = currencyCode;
-
-        // For payment methods requiring Open Invoice data (e.g., Klarna), append it
-        if(AdyenPaymentUtility.checkIfKlarnaOrderFromAuthorization(pa)) {
-
-            // Get invoice id
-            List<Id> invoiceIds = new List<Id>();
-            if(pa?.OrderPaymentSummary?.OrderSummary?.Invoices != null)
-                for(Invoice i : pa?.OrderPaymentSummary?.OrderSummary?.Invoices) invoiceIds.add(i.Id);
-
-            // Pull all InvoiceLines.  Send adjustments + charge vs shipping
-            Integer invoiceLineCount = 0;
-            Map<String, Object> additionalData = new Map<String, Object>();
-
-            for(InvoiceLine invoiceLine : [SELECT Id, Product2.Name, Quantity, CurrencyIsoCode, ChargeAmount,
-                                                ChargeTaxAmount, ChargeAmountWithTax, Type 
-                                            FROM InvoiceLine 
-                                            WHERE Type = 'Charge'
-                                            AND InvoiceId IN :invoiceIds]) {
-
-                Decimal itemAmount = Integer.valueOf(invoiceLine.ChargeAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
-                Decimal itemVatAmount = Integer.valueOf(invoiceLine.ChargeTaxAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
-                Decimal itemVatPercentage = invoiceLine.ChargeAmount / invoiceLine.ChargeTaxAmount;
-
-                invoiceLineCount++;
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.currencyCode',          invoiceLine.CurrencyIsoCode);
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.description',           invoiceLine.Product2.Name);
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemAmount',            String.valueOf(itemAmount)); 
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatAmount',         String.valueOf(itemVatAmount));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatPercentage',     String.valueOf(itemVatPercentage));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.numberOfItems',         String.valueOf(Integer.valueOf(invoiceLine.Quantity)));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.productUrl',            '');
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.imageUrl',              '');
-            }
-            additionalData.put('openinvoicedata.numberOfLines', invoiceLineCount);
-            libRequest.additionalData = JSON.serialize(additionalData);
-        }
-
-        libRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
-
-        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(libRequest));
-
-        AdyenService client = new AdyenService(adyenAdapterMdt);
-        client.setEndpoint(adyenAdapterMdt.Capture_Endpoint__c);
-        client.setBody(body);
-        client.setReference(pspReference);
-
-        return processCaptureResponse(client.execute(), amount);
-    }
-
-    /**
-     * @param adyenResponse: From Adyens api after requesting a capture
-     * @return CommercePayments.ReferencedRefundResponse with populated properties.
-     */
-    private static CommercePayments.GatewayResponse processCaptureResponse(HttpResponse response, Double amount) {
-
-        //CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(response.getBody(), CaptureResponse.class);
-        CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
-
-        //CommercePayments.GatewayErrorResponse gatewayErrorResponse;
-        CommercePayments.CaptureResponse captureResponse = new CommercePayments.CaptureResponse();
-        captureResponse.setAsync(true);
-        captureResponse.setAmount(amount);
-        captureResponse.setGatewayDate(System.now());
-        captureResponse.setGatewayMessage(adyenResponse.status);
-        captureResponse.setGatewayReferenceDetails(adyenResponse.reference);
-        captureResponse.setGatewayResultCode(adyenResponse.status);
-
-        if(adyenResponse != null && response.getStatusCode() != AdyenService.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
-            captureResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
-            captureResponse.setSalesforceResultCodeInfo(SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-            if(adyenResponse.status == 'received') captureResponse.setGatewayMessage('[capture-received]');
-        } else {
-            captureResponse.setGatewayReferenceNumber(null);
-            captureResponse.setSalesforceResultCodeInfo(SYSTEMERROR_SALESFORCE_RESULT_CODE_INFO);
-        }
-        return captureResponse;
-    }
-
-    /**
      * Calls the Service to post a REFUND to Adyen. Evaluates the response wrapped in custom class Adyen and sets appropirate
      * props on CommercePayments.ReferenceRefundResponse.
      * * General flow is AdyenService to post request JSON --> populateReferencedRefundResponse
      *
      * @param refundRequest   The CommercePayments.ReferencedRefundRequest Object.
      * @return refundResponse  The CommercePayments.ReferencedRefundResponse Object.
-     * 
+     *
      * @see AdyenService
      */
     private static CommercePayments.GatewayResponse refund(CommercePayments.ReferencedRefundRequest refundRequest) {
-        
+
         // Retrieve the Payment object
         Payment payment = AdyenPaymentUtility.retrievePayment(refundRequest.PaymentId);
 
@@ -371,9 +233,9 @@ public with sharing class AdyenPaymentHelper {
         if(String.isNotBlank(payment.PaymentAuthorization?.adyenOverrideMerchantConfig__c))
             adapterName = payment.PaymentAuthorization.adyenOverrideMerchantConfig__c;
         if(String.isBlank(adapterName))
-            adapterName = DEFAULT_ADAPTER_NAME;
+            adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
 
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName); 
+        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
 
         CaptureRequest libRequest = new CaptureRequest();
 
@@ -383,9 +245,8 @@ public with sharing class AdyenPaymentHelper {
         libRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
 
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : payment.CurrencyIsoCode.toUppercase();
-        Double amount = AdyenPaymentUtility.normalizeAmount(refundRequest.amount);
         libRequest.amount = new Amount();
-        libRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+        libRequest.amount.value = (refundRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
         libRequest.amount.currency_x = currencyCode;
 
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(libRequest));
@@ -420,14 +281,14 @@ public with sharing class AdyenPaymentHelper {
             refundResponse.setGatewayReferenceDetails(adyenResponse.reference);
             refundResponse.setGatewayResultCode(adyenResponse.status);
             refundResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            refundResponse.setSalesforceResultCodeInfo(SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+            refundResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
         } else {
             refundResponse.setGatewayReferenceNumber(null);
             refundResponse.setGatewayMessage(adyenResponse.message);
             refundResponse.setGatewayReferenceDetails(adyenResponse.message);
             refundResponse.setGatewayResultCode(adyenResponse.status);
             refundResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            refundResponse.setSalesforceResultCodeInfo(SYSTEMERROR_SALESFORCE_RESULT_CODE_INFO); 
+            refundResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
         }
         return refundResponse;
     }
@@ -452,7 +313,7 @@ public with sharing class AdyenPaymentHelper {
 
         // By Default, retrieve the metadata key from the order's sales channel
         String adapterName = String.isNotEmpty(pa.adyenOverrideMerchantConfig__c) ? pa.adyenOverrideMerchantConfig__c : pa.OrderPaymentSummary?.OrderSummary?.SalesChannel?.ADYENMERCHANTID__c; 
-        if(String.isBlank(adapterName)) adapterName = DEFAULT_ADAPTER_NAME;
+        if(String.isBlank(adapterName)) adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName); 
 
         PaymentsRequest libRequest = new PaymentsRequest();
@@ -466,7 +327,7 @@ public with sharing class AdyenPaymentHelper {
         client.setBody(body);
         client.setReference(pspReference);
 
-        return processCancelResponse(client.execute(), AdyenPaymentUtility.normalizeAmount(cancelRequest.amount));
+        return processCancelResponse(client.execute(), cancelRequest.amount);
     }
 
     public static CommercePayments.GatewayResponse processCancelResponse(HttpResponse response, Double amount) {
@@ -487,7 +348,7 @@ public with sharing class AdyenPaymentHelper {
                 cancelResponse.setGatewayReferenceDetails(adyenResponse.reference);
                 cancelResponse.setGatewayResultCode(adyenResponse.status);
                 cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
-                cancelResponse.setSalesforceResultCodeInfo(SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+                cancelResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
             } else { // Adyen did not accepted cancel request
                 cancelResponse.setGatewayMessage(adyenResponse.message);
                 cancelResponse.setGatewayReferenceDetails(adyenResponse.message);
@@ -500,7 +361,7 @@ public with sharing class AdyenPaymentHelper {
             cancelResponse.setGatewayReferenceDetails(adyenResponse.message);
             cancelResponse.setGatewayResultCode(adyenResponse.errorCode);
             cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            cancelResponse.setSalesforceResultCodeInfo(SYSTEMERROR_SALESFORCE_RESULT_CODE_INFO);
+            cancelResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
         }
         return cancelResponse;
     }
@@ -535,13 +396,13 @@ public with sharing class AdyenPaymentHelper {
         String apexClassId = AdyenPaymentUtility.retrieveApexClassId(apexName, nameSpacePrefix);
         System.debug('---->apexClassId =' + apexClassId);
         
-        if(NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode) || apexAdapterId == apexClassId || Test.isRunningTest()){
+        if(AdyenConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode) || apexAdapterId == apexClassId || Test.isRunningTest()){
         
             notificationSaveResult = createNotificationSaveResult( notificationRequestItem );
         
             if(notificationSaveResult != null) {
                 if(notificationSaveResult.isSuccess()) { // Notification is accepted by the platform
-                    gatewayNotificationResponse.setStatusCode(AdyenService.HTTP_SUCCESS_CODE);
+                    gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
                     gatewayNotificationResponse.setResponseBody(Blob.valueOf( NOTIFICATION_ACCEPTED_RESPONSE ));
                     System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after the notification is accepted = ' + gatewayNotificationResponse);
                 } else { // Notification is not accepted by the platform, generate system event
@@ -555,12 +416,12 @@ public with sharing class AdyenPaymentHelper {
             } else {
                 String msg = '[accepted] But unsupported notification type = ' + notificationRequestItem.eventCode;
                 gatewayNotificationResponse.setResponseBody(Blob.valueOf( msg ));
-                gatewayNotificationResponse.setStatusCode(AdyenService.HTTP_SUCCESS_CODE);
+                gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             }
         } else {
             String msg = '[accepted] But not processed - wrong payment adapter or wrong instance';
             gatewayNotificationResponse.setResponseBody(Blob.valueOf( msg ));
-            gatewayNotificationResponse.setStatusCode(AdyenService.HTTP_SUCCESS_CODE);
+            gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after identifying that it was the wrong payment adapter = ' + gatewayNotificationResponse);
         }
         return gatewayNotificationResponse;
@@ -609,16 +470,16 @@ public with sharing class AdyenPaymentHelper {
             notificationStatusSF = CommercePayments.SalesforceResultCode.Success; 
         }
 
-        if (NOTIFICATION_REQUEST_TYPE_CAPTURE.equalsIgnoreCase(notificationRequestItem.eventCode) ||
-            NOTIFICATION_REQUEST_TYPE_CAPTURE_FAILED.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+        if (AdyenConstants.NOTIFICATION_REQUEST_TYPE_CAPTURE.equalsIgnoreCase(notificationRequestItem.eventCode) ||
+            AdyenConstants.NOTIFICATION_REQUEST_TYPE_CAPTURE_FAILED.equalsIgnoreCase(notificationRequestItem.eventCode)) {
             notification = new CommercePayments.CaptureNotification();
-        } else if ( NOTIFICATION_REQUEST_TYPE_REFUND.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+        } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_REFUND.equalsIgnoreCase(notificationRequestItem.eventCode)) {
             notification = new CommercePayments.ReferencedRefundNotification();
         /*
-        } else if ( NOTIFICATION_REQUEST_TYPE_CANCEL.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+        } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_CANCEL.equalsIgnoreCase(notificationRequestItem.eventCode)) {
             // TODO : When SF OMS supports cancel notifications, change this object to a CancelNotification
             notification = new CommercePayments.AuthorizationReversalNotification();
-        } else if ( NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+        } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
             // TODO : When SF OMS Supports auth notifications, change this object to an AuthorizationNotification
             notification = new CommercePayments.AuthorizationNotification();
         */
@@ -634,13 +495,13 @@ public with sharing class AdyenPaymentHelper {
         notification.setGatewayResultCode(notificationRequestItem.eventCode);
         notification.setGatewayResultCodeDescription(notificationRequestItem.reason);
         if(String.isBlank(notificationRequestItem.reason) && notificationStatus == CommercePayments.NotificationStatus.Success) {
-            if ( NOTIFICATION_REQUEST_TYPE_CAPTURE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+            if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_CAPTURE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
                 notification.setGatewayMessage('[capture-complete]');
-            } else if ( NOTIFICATION_REQUEST_TYPE_REFUND.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+            } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_REFUND.equalsIgnoreCase(notificationRequestItem.eventCode)) {
                 notification.setGatewayMessage('[refund-complete]');
-            } else if ( NOTIFICATION_REQUEST_TYPE_CANCEL.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+            } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_CANCEL.equalsIgnoreCase(notificationRequestItem.eventCode)) {
                 notification.setGatewayMessage('[cancel-complete]');
-            } else if ( NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
+            } else if ( AdyenConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)) {
                 notification.setGatewayMessage('[authorise-complete]');
             }
         } else {
