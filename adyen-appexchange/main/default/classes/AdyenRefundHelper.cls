@@ -10,7 +10,7 @@ public with sharing class AdyenRefundHelper {
      *
      * @see AdyenService
     */
-    private static CommercePayments.GatewayResponse refund(CommercePayments.ReferencedRefund refundRequest) {
+    public static CommercePayments.GatewayResponse refund(CommercePayments.ReferencedRefundRequest refundRequest) {
 
         // Retrieve the Payment
         Payment payment = AdyenPaymentUtility.retrievePayment(refundRequest.PaymentId);
@@ -43,10 +43,37 @@ public with sharing class AdyenRefundHelper {
 
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : payment.CurrencyIsoCode.toUppercase();
         String pspReference = (payment.OrderPaymentSummary.FullName == 'DeclineRefund' ? 'dummytransaction' : AdyenPaymentUtility.getRefundGatewayRefNumber(payment));
-        ModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.ReferencedRefund, currencyCode, refundRequest.amount, pspReference);
-        modRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
+        ModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.ReferencedRefund, currencyCode, refundRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
+        modRequest.setApplicationInfo(AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c));
+        HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, adyenAdapterMdt.Refund_Endpoint__c);
+        return processRefundResponse(adyenHttpResponse, refundRequest.amount);
+    }
 
-        ModificationResponse modResponse = AdyenPaymentUtility.sendModificationRequest(CommercePayments.RequestType.ReferencedRefund, modRequest, adyenAdapterMdt.Refund_Endpoint__c);
-        return AdyenPaymentUtility.processAdyenResponse(modResponse, refundRequest.amount, CommercePayments.RequestType.ReferencedRefund);
+    /**
+     * @param adyenResponse: Response from Adyens api after requesting a refund
+     * @return CommercePayments.GatewayResponse with populated properties.
+    */
+    public static CommercePayments.GatewayResponse processRefundResponse(HttpResponse adyenHttpResponse, Double amount) {
+        CommercePayments.ReferencedRefundResponse salesforceResponse = new CommercePayments.ReferencedRefundResponse();
+        RefundResponse adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(adyenHttpResponse.getBody()), RefundResponse.class);
+        salesforceResponse.setAsync(true);
+        salesforceResponse.setAmount(amount);
+        salesforceResponse.setGatewayDate(System.now());
+        salesforceResponse.setGatewayReferenceDetails(adyenResponse.getReference());
+        salesforceResponse.setGatewayResultCode(adyenResponse.getStatus());
+        salesforceResponse.setGatewayResultCodeDescription(adyenResponse.getMessage());
+
+        if (adyenResponse != null && adyenHttpResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
+           salesforceResponse.setGatewayReferenceNumber(adyenResponse.getPSPReference());
+           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+           if (adyenResponse.getStatus() == 'received') {
+            salesforceResponse.setGatewayMessage('[refund-received]');
+           }
+        } else {
+           salesforceResponse.setGatewayReferenceNumber(null);
+           salesforceResponse.setGatewayMessage(adyenResponse.getMessage());
+           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
+        }
+        return salesforceResponse;
     }
 }

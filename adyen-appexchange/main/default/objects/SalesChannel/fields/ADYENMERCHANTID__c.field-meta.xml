@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>ADYENMERCHANTID__c</fullName>
     <externalId>false</externalId>
-    <label>ADYENMERCHANTID</label>
+    <label>Adyen Merchant Id</label>
     <length>255</length>
     <required>false</required>
     <type>Text</type>

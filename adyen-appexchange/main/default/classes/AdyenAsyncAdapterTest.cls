@@ -48,7 +48,7 @@ global class AdyenAsyncAdapterTest {
                         additionalData.put('recurring.shopperReference', TEST_SHOPPER_REFERENCE);
                     } else { // Failed Tokenize
                         responseBody.put('resultCode', RESULT_CODE_FAIL);
-                        res.setStatusCode(AdyenService.HTTP_ERROR_CODE);
+                        res.setStatusCode(AdyenConstants.HTTP_ERROR_CODE);
                     }
                 } else {
                     // Authorize
@@ -57,7 +57,7 @@ global class AdyenAsyncAdapterTest {
                         amount.put('value', Integer.valueOf(TEST_AMOUNT*10));
                     } else { // Failed Auth
                         responseBody.put('resultCode', RESULT_CODE_FAIL);
-                        res.setStatusCode(AdyenService.HTTP_ERROR_CODE);
+                        res.setStatusCode(AdyenConstants.HTTP_ERROR_CODE);
                     }
                 }
                 responseBody.put('additionalData', additionalData);
@@ -67,7 +67,7 @@ global class AdyenAsyncAdapterTest {
                 if(TEST_PSP_REFERENCE.equals(requestBody.get('originalReference'))) { // Successful Capture
                     amount.put('value', Integer.valueOf(TEST_AMOUNT*10));
                 } else { // Failed Capture
-                    res.setStatusCode(AdyenService.HTTP_ERROR_CODE);
+                    res.setStatusCode(AdyenConstants.HTTP_ERROR_CODE);
                 }
             } else if(endpoint.containsIgnoreCase('refund')) {
                 // Refund
@@ -75,11 +75,11 @@ global class AdyenAsyncAdapterTest {
                 if(TEST_PSP_REFERENCE.equals(requestBody.get('originalReference'))) { // Successful Refund
                     amount.put('value', Integer.valueOf(TEST_AMOUNT*10));
                 } else { // Failed Refund
-                    res.setStatusCode(AdyenService.HTTP_ERROR_CODE);
+                    res.setStatusCode(AdyenConstants.HTTP_ERROR_CODE);
                 }
             } else if(endpoint.containsIgnoreCase('cancel')) {
                 if(!TEST_PSP_REFERENCE.equals(requestBody.get('reference'))) { // Failed Cancel
-                    res.setStatusCode(AdyenService.HTTP_ERROR_CODE);
+                    res.setStatusCode(AdyenConstants.HTTP_ERROR_CODE);
                 }
             }
 

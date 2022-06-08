@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Service_Password__c</fullName>
+    <fullName>Authorize_Endpoint__c</fullName>
+    <defaultValue>&quot;/authorize&quot;</defaultValue>
     <deprecated>false</deprecated>
-    <description>Web service password.  Leave this blank if Named credential set to inject authorization header</description>
     <externalId>false</externalId>
     <fieldManageability>DeveloperControlled</fieldManageability>
-    <label>Service Password</label>
-    <length>255</length>
+    <label>Authorize Endpoint</label>
+    <length>64</length>
     <required>false</required>
     <type>Text</type>
     <unique>false</unique>

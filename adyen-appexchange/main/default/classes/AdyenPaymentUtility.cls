@@ -115,13 +115,11 @@ public with sharing class AdyenPaymentUtility {
                 System_Integrator_Name__c = 'CAPGEMINI',
                 Endpoint_Method__c = 'POST',
                 Authorize_Endpoint__c = '/payments',
-                Tokenize_Endpoint__c = '/payments',
+                //Tokenize_Endpoint__c = '/payments',
                 Refund_Endpoint__c = '/{paymentPspReference}/refund',
                 Capture_Endpoint__c = '/{paymentPspReference}/capture',
-                Cancel_Endpoint__c = '/{paymentPspReference}/cancel',
-                Endpoint_Api_Version__c = '/v1',
-                Service_Password__c = 'ABC123',
-                Service_Username__c = 'TEST_USER'
+                //Cancel_Endpoint__c = '/{paymentPspReference}/cancel',
+                Endpoint_Api_Version__c = '/v1'
             );
         } else if (
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Developername.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.NamespacePrefix.isAccessible() &&
@@ -129,14 +127,15 @@ public with sharing class AdyenPaymentUtility {
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Endpoint_Api_Version__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Endpoint_Method__c.isAccessible() &&
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Endpoint_Path__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Merchant_Account__c.isAccessible() &&
             Schema.sObjectType.Adyen_Adapter__mdt.fields.System_Integrator_Name__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Refund_Endpoint__c.isAccessible() &&
-            Schema.sObjectType.Adyen_Adapter__mdt.fields.Tokenize_Endpoint__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Authorize_Endpoint__c.isAccessible() &&
-            Schema.sObjectType.Adyen_Adapter__mdt.fields.Single_Currency_Code__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Service_Username__c.isAccessible() && 
-            Schema.sObjectType.Adyen_Adapter__mdt.fields.Service_Password__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Cancel_Endpoint__c.isAccessible()
+            Schema.sObjectType.Adyen_Adapter__mdt.fields.Authorize_Endpoint__c.isAccessible() &&
+            // Schema.sObjectType.Adyen_Adapter__mdt.fields.Authorize_Endpoint__c.isAccessible() &&
+            Schema.sObjectType.Adyen_Adapter__mdt.fields.Single_Currency_Code__c.isAccessible() //&&
+            // Schema.sObjectType.Adyen_Adapter__mdt.fields.Cancel_Endpoint__c.isAccessible()
         ) {
             return [SELECT Developername, NamespacePrefix, MasterLabel, Capture_Endpoint__c, Endpoint_Api_Version__c, 
                         System_Integrator_Name__c, Endpoint_Method__c, Endpoint_Path__c, Merchant_Account__c, 
-                        Refund_Endpoint__c, Single_Currency_Code__c, Service_Username__c, Service_Password__c,
-                        Authorize_Endpoint__c, Tokenize_Endpoint__c, Cancel_Endpoint__c
+                        Refund_Endpoint__c, Single_Currency_Code__c,
+                        Authorize_Endpoint__c//, Tokenize_Endpoint__c, Cancel_Endpoint__c
                     FROM Adyen_Adapter__mdt
                     WHERE Developername = :metaType
                     LIMIT 1];
@@ -269,7 +268,8 @@ public with sharing class AdyenPaymentUtility {
                 if (payment.PaymentGateway?.PaymentGatewayProvider?.ApexAdapter != null)
                     apexAdapterId = payment.PaymentGateway.PaymentGatewayProvider.ApexAdapter.Id;
             }
-        return apexAdapterId;
+        }
+         return apexAdapterId;
     }
 
     /**
@@ -349,19 +349,20 @@ public with sharing class AdyenPaymentUtility {
     *
     * @return ModificationRequest to send to Adyen.
     */
-    public ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String currencyCode, Double amount, String pspReference) {
+    public static ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String currencyCode, Double amount, String pspReference, String merchantAccount) {
        ModificationRequest modRequest;
        if (paymentType == CommercePayments.RequestType.Capture) {
          modRequest = new CaptureRequest();
-       } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
+       } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
          modRequest = new RefundRequest();
        }
-       modRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
-       modRequest.originalReference = pspReference;
-       modRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-       modRequest.amount = new Amount();
-       modRequest.amount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
-       modRequest.amount.currency_x = currencyCode;
+       modRequest.setReference(AdyenPaymentUtility.getRandomNumber(16));
+       modRequest.setOriginalReference(pspReference);
+       modRequest.setMerchantAccount(merchantAccount);
+       Amount requestAmount = new Amount();
+       requestAmount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+       requestAmount.currency_x = currencyCode;
+       modRequest.setAmount(requestAmount);
        return modRequest;
     }
 
@@ -370,55 +371,23 @@ public with sharing class AdyenPaymentUtility {
     *
     * @return response from adyen platform.
     */
-    public ModificationResponse sendModificationRequest(CommercePayments.RequestType paymentType, ModificationRequest modRequest, String endPoint) {
+    //public static HttpResponse sendModificationRequest(CommercePayments.RequestType paymentType, ModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
+    public static HttpResponse sendModificationRequest(ModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
         ModificationResponse adyenResponse;
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(modRequest));
         AdyenService client = new AdyenService(adyenAdapterMdt);
         client.setEndpoint(endPoint);
         client.setBody(body);
-        client.setReference(modRequest.originalReference);
+        client.setReference(modRequest.getOriginalReference());
         HttpResponse response = client.execute();
+        return response;
+        /*
         if (paymentType == CommercePayments.RequestType.Capture) {
             adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
-        } else if (paymentType == CommercePayments.RequestType.ReferencedRefundRequest) {
+        } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
             adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), RefundResponse.class);
         }
         return adyenResponse;
-    }
-
-     /**
-     * @param adyenResponse: Response from Adyens api after requesting a capture/refund
-     * @return CommercePayments.GatewayResponse with populated properties.
-     */
-
-    public CommercePayments.GatewayResponse processAdyenResponse(HttpResponse adyenResponse, Double amount, CommercePayments.RequestType paymentType) {
-        String gatewayMessage = '';
-        CommercePayments.GatewayResponse salesforceResponse;
-        if (paymentType == CommercePayments.RequestType.Capture) {
-             salesforceResponse = new CommercePayments.CaptureResponse();
-             gatewayMessage = '[capture-received]';
-        } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
-             salesforceResponse = new CommercePayments.ReferencedRefundRequest();
-             gatewayMessage = '[refund-received]';
-        }
-        salesforceResponse.setAsync(true);
-        salesforceResponse.setAmount(amount);
-        salesforceResponse.setGatewayDate(System.now());
-        salesforceResponse.setGatewayMessage(adyenResponse.status);
-        salesforceResponse.setGatewayReferenceDetails(adyenResponse.reference);
-        salesforceResponse.setGatewayResultCode(adyenResponse.status);
-        salesforceResponse.setGatewayResultCodeDescription(adyenResponse.message);
-
-        if (adyenResponse != null && salesforceResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
-           salesforceResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
-           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-           if (salesforceResponse.status == 'received') {
-            salesforceResponse.setGatewayMessage(gatewayMessage);
-           }
-        } else {
-           salesforceResponse.setGatewayReferenceNumber(null);
-           salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
-        }
-        return salesforceResponse;
+        */
     }
 }
