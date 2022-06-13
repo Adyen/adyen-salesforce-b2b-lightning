@@ -20,7 +20,7 @@ public with sharing class AdyenPaymentHelper {
 
         try {
             if     (paymentRequestType == CommercePayments.RequestType.Authorize)             return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
+            else if(paymentRequestType == CommercePayments.RequestTypeg)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return AdyenRefundHelper.refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
         //    else if(paymentRequestType == CommercePayments.RequestType.AuthorizationReversal) return cancel((CommercePayments.AuthorizationReversalRequest)paymentRequest);
             else return null;

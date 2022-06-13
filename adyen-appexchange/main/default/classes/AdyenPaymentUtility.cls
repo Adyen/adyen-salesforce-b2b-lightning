@@ -115,10 +115,8 @@ public with sharing class AdyenPaymentUtility {
                 System_Integrator_Name__c = 'CAPGEMINI',
                 Endpoint_Method__c = 'POST',
                 Authorize_Endpoint__c = '/payments',
-                //Tokenize_Endpoint__c = '/payments',
                 Refund_Endpoint__c = '/{paymentPspReference}/refund',
                 Capture_Endpoint__c = '/{paymentPspReference}/capture',
-                //Cancel_Endpoint__c = '/{paymentPspReference}/cancel',
                 Endpoint_Api_Version__c = '/v1'
             );
         } else if (
@@ -128,14 +126,11 @@ public with sharing class AdyenPaymentUtility {
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Endpoint_Path__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Merchant_Account__c.isAccessible() &&
             Schema.sObjectType.Adyen_Adapter__mdt.fields.System_Integrator_Name__c.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.Refund_Endpoint__c.isAccessible() &&
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Authorize_Endpoint__c.isAccessible() &&
-            // Schema.sObjectType.Adyen_Adapter__mdt.fields.Authorize_Endpoint__c.isAccessible() &&
-            Schema.sObjectType.Adyen_Adapter__mdt.fields.Single_Currency_Code__c.isAccessible() //&&
-            // Schema.sObjectType.Adyen_Adapter__mdt.fields.Cancel_Endpoint__c.isAccessible()
-        ) {
+            Schema.sObjectType.Adyen_Adapter__mdt.fields.Single_Currency_Code__c.isAccessible() ) {
             return [SELECT Developername, NamespacePrefix, MasterLabel, Capture_Endpoint__c, Endpoint_Api_Version__c, 
                         System_Integrator_Name__c, Endpoint_Method__c, Endpoint_Path__c, Merchant_Account__c, 
                         Refund_Endpoint__c, Single_Currency_Code__c,
-                        Authorize_Endpoint__c//, Tokenize_Endpoint__c, Cancel_Endpoint__c
+                        Authorize_Endpoint__c
                     FROM Adyen_Adapter__mdt
                     WHERE Developername = :metaType
                     LIMIT 1];
