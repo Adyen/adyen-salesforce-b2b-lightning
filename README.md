@@ -1,1 +1,1 @@
-# adyen-salesforce-b2b2c
+# adyen-salesforce-b2b-lightning
