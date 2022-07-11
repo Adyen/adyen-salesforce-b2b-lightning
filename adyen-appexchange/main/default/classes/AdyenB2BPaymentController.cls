@@ -190,61 +190,55 @@ public with sharing class AdyenB2BPaymentController {
     }
 
     /**
-     *  Makes an authorization on the credit card through the payments connect-api.
-     *
-     *  This is example code if authorization is done through the apex class. If the tokenization code above is used, this
-     *  is not necessary as the authorization can occur through the authorization done in B2BAuthorizeTokenizedPayment.cls.
-     *  You can uncomment this code out though if you wish to bypass the tokenization step.
-     */
-    @AuraEnabled
-    public static void authorizePaymentInfo(String cartId,
-                Map<String, Object> selectedBillingAddress,
-                Map<String, Object> paymentInfo) {
-        ConnectApi.AuthorizationRequest authRequest = new ConnectApi.AuthorizationRequest();
-        WebCart cart;
-       // try {
-            cart = [SELECT Id, Status, PaymentMethodId, PaymentGroupId, GrandTotalAmount, PoNumber, Name, WebStoreId, AccountId FROM WebCart WHERE Id=:cartId];
-			//system.debug('zzz cart' + cart);
-			//CartValidationOutput CVO = [SELECT Id, CartId, BackgroundOperationId, Message, Level, RelatedEntityId, Type FROM CartValidationOutput where Id=:cartId];
-           // system.debug('zzz CVO' + CVO);
-                                        authRequest.amount = cart.GrandTotalAmount;
-            authRequest.accountId = cart.AccountId;
-            authRequest.comments = 'Authorizing $' + cart.GrandTotalAmount;
-            authRequest.effectiveDate = Datetime.now();
-            authRequest.currencyIsoCode = UserInfo.getDefaultCurrency();
+         *  Makes an authorization on the credit card through the payments connect-api.
+         *
+         *  This is example code if authorization is done through the apex class. If the tokenization code above is used, this
+         *  is not necessary as the authorization can occur through the authorization done in B2BAuthorizeTokenizedPayment.cls.
+         *  You can uncomment this code out though if you wish to bypass the tokenization step.
+         */
+        @AuraEnabled
+        public static void authorizePaymentInfo(String cartId,
+                    Map<String, Object> selectedBillingAddress,
+                    Map<String, Object> paymentInfo) {
+            ConnectApi.AuthorizationRequest authRequest = new ConnectApi.AuthorizationRequest();
+            WebCart cart;
+            try {
+                cart = [SELECT WebStoreId, GrandTotalAmount, AccountId FROM WebCart WHERE Id=:cartId];
 
-            // Cannot proceed if paymentGatewayId does not exist
-            String paymentGatewayId = getPaymentGatewayId(cart.WebStoreId);
-            if (paymentGatewayId == null || paymentGatewayId.equals('')) {
-               throw new AuraHandledException('This store is not authorized to process payments.');
+                authRequest.amount = cart.GrandTotalAmount;
+                authRequest.accountId = cart.AccountId;
+                authRequest.comments = 'Authorizing $' + cart.GrandTotalAmount;
+                authRequest.effectiveDate = Datetime.now();
+                authRequest.currencyIsoCode = UserInfo.getDefaultCurrency();
+
+                // Cannot proceed if paymentGatewayId does not exist
+                String paymentGatewayId = getPaymentGatewayId(cart.WebStoreId);
+                if (paymentGatewayId == null || paymentGatewayId.equals('')) {
+                   throw new AuraHandledException('This store is not authorized to process payments.');
+                }
+
+                authRequest.paymentGatewayId = paymentGatewayId;
+                authRequest.paymentMethod = getAuthPaymentMethod(paymentInfo, selectedBillingAddress);
+                authRequest.paymentGroup = getPaymentGroup(cartId);
+
+                //authRequest.additionalData = new Map<String, String>();
+
+                // Authorize Payment with Payments API
+                ConnectApi.AuthorizationResponse authResponse = ConnectApi.Payments.authorize(authRequest);
+                cart.paymentMethodId = authResponse.paymentMethod.Id;
+                if(Schema.sObjectType.WebCart.isAccessible()) {
+                   update cart;
+                }
+                if (authResponse.error != null) {
+                    throw new AuraHandledException('AuthResponseError: ' + authResponse.error.message);
+                }
+
+            } catch (ConnectApi.ConnectApiException e) {
+                throw new AuraHandledException(e.getMessage());
+            } catch (Exception e) {
+                throw new AuraHandledException(e.getMessage());
             }
-
-            authRequest.paymentGatewayId = paymentGatewayId;
-            authRequest.paymentMethod = getAuthPaymentMethod(paymentInfo, selectedBillingAddress);
-            authRequest.paymentGroup = getPaymentGroup(cartId);
-
-            //authRequest.additionalData = new Map<String, String>();
-            system.debug('zzz authRequest' + authRequest);
-            // Authorize Payment with Payments API
-            ConnectApi.AuthorizationResponse authResponse = ConnectApi.Payments.authorize(authRequest);
-          //  CVO = [SELECT Id, CartId, BackgroundOperationId, Message, Level, RelatedEntityId, Type FROM CartValidationOutput where Id=:cartId];
-            system.debug('zzz authResponse' + authResponse);
-           cart.paymentMethodId = authResponse.paymentMethod.Id;
-
-           if(Schema.sObjectType.WebCart.isAccessible()) {
-               update cart;
-           }
-            if (authResponse.error != null) {
-                throw new AuraHandledException('AuthResponseError: ' + authResponse.error.message);
-            }
-
-        /*} catch (ConnectApi.ConnectApiException e) {
-            throw new AuraHandledException(e.getMessage());
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
         }
-*/
-    }
 
     // Get the PaymentMethodRequest
     private static ConnectApi.AuthApiPaymentMethodRequest getAuthPaymentMethod(Map<String, Object> paymentInfo, Map<String, Object> billingAddress) {
@@ -265,11 +259,9 @@ public with sharing class AdyenB2BPaymentController {
         paymentGroup.currencyIsoCode = UserInfo.getDefaultCurrency();
 
         String orderId = getOrderId(cartId);
-        System.debug('zzz orderId' + orderId);
         if (orderId != null && !orderId.equals('')) {
             paymentGroup.sourceObjectId = getOrderId(cartId);
         }
-System.debug('zzz paymentGroup' + paymentGroup);
         return paymentGroup;
     }
 
