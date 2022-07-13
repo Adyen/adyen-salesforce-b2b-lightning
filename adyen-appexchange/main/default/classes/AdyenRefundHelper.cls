@@ -50,7 +50,7 @@ public with sharing class AdyenRefundHelper {
     }
 
     /**
-     * @param adyenResponse: Response from Adyens api after requesting a refund
+     * @param adyenResponse: Response from Adyen's api after requesting a refund
      * @return CommercePayments.GatewayResponse with populated properties.
     */
     public static CommercePayments.GatewayResponse processRefundResponse(HttpResponse adyenHttpResponse, Double amount) {
@@ -66,7 +66,7 @@ public with sharing class AdyenRefundHelper {
         if (adyenResponse != null && adyenHttpResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
            salesforceResponse.setGatewayReferenceNumber(adyenResponse.getPSPReference());
            salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-           if (adyenResponse.getStatus() == 'received') {
+           if (adyenResponse.getStatus() == AdyenConstants.NOTIFICATION_RECEIVED) {
             salesforceResponse.setGatewayMessage('[refund-received]');
            }
         } else {

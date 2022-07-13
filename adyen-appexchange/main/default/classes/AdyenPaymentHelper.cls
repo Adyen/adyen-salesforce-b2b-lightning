@@ -1,9 +1,9 @@
 public with sharing class AdyenPaymentHelper {
 
     @TestVisible
-    public static String TEST_PMID;
+    public static String TEST_PAYMENT_METHOD_ID;
     @TestVisible
-    public static String TEST_NR_BODY;
+    public static String TEST_NOTIFICATION_REQUEST_BODY;
 
      /**
      *  Receives Payment Gateway Context from AdyenAsyncAdapter, looks at the context type and then invokes the appropriate Capture or Refund operation
@@ -19,10 +19,9 @@ public with sharing class AdyenPaymentHelper {
         System.debug('------------->Adyen payment req type: ' + paymentRequestType);
 
         try {
-            if     (paymentRequestType == CommercePayments.RequestType.Authorize)             return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
+            if(paymentRequestType == CommercePayments.RequestType.Authorize)                  return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
             else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return AdyenRefundHelper.refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
-        //    else if(paymentRequestType == CommercePayments.RequestType.AuthorizationReversal) return cancel((CommercePayments.AuthorizationReversalRequest)paymentRequest);
             else return null;
         } catch (Exception e) {
             return new CommercePayments.GatewayErrorResponse(String.valueOf(AdyenConstants.HTTP_ERROR_CODE), e.getMessage());
@@ -67,7 +66,7 @@ public with sharing class AdyenPaymentHelper {
         authorizationRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
         authorizationRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
         authorizationRequest.shopperIp = authRequest?.ipAddress;
-        authorizationRequest.shopperInteraction = AuthorisationRequest.shopperInteractionEnum.ContAuth;
+        authorizationRequest.shopperInteraction = AuthorisationRequest.shopperInteractionEnum.Ecommerce;
         authorizationRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(authorizationRequest));
         AdyenService client = new AdyenService(adyenAdapterMdt);
@@ -80,9 +79,9 @@ public with sharing class AdyenPaymentHelper {
     private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount) {
         Map<String,Object> body = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
         String resultCode = (String)body.get('resultCode');
-        CommercePayments.AuthorizationResponse salesforceAuthResponse = new CommercePayments.AuthorizationResponse();
         if(resultCode != null) {
             System.debug('-----> Adyen accepted request');
+            CommercePayments.AuthorizationResponse salesforceAuthResponse = new CommercePayments.AuthorizationResponse();
             if(resultCode == 'Authorised') {
                 Map<String,Object> additionalData = (Map<String,Object>)body.get('additionalData');
                 salesforceAuthResponse.setGatewayAuthCode((String)additionalData.get('authCode'));
@@ -155,7 +154,7 @@ public with sharing class AdyenPaymentHelper {
         if(adyenResponse != null && response.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
             if(adyenResponse.errorCode == null) { // Adyen accepted Cancel request
                 cancelResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
-                if(adyenResponse.status == 'received') cancelResponse.setGatewayMessage('[cancel-received]');
+                if(adyenResponse.status == AdyenConstants.NOTIFICATION_RECEIVED) cancelResponse.setGatewayMessage('[cancel-received]');
                 cancelResponse.setGatewayReferenceDetails(adyenResponse.reference);
                 cancelResponse.setGatewayResultCode(adyenResponse.status);
                 cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
@@ -215,7 +214,7 @@ public with sharing class AdyenPaymentHelper {
             if(notificationSaveResult != null) {
                 if(notificationSaveResult.isSuccess()) { // Notification is accepted by the platform
                     gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
-                    gatewayNotificationResponse.setResponseBody(Blob.valueOf( AdyenConstants.NOTIFICATION_ACCEPTED_RESPONSE ));
+                    gatewayNotificationResponse.setResponseBody(Blob.valueOf(AdyenConstants.NOTIFICATION_ACCEPTED_RESPONSE));
                     System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after the notification is accepted = ' + gatewayNotificationResponse);
                 } else { // Notification is not accepted by the platform, generate system event
                     String msg = '[accepted] ';
@@ -227,12 +226,12 @@ public with sharing class AdyenPaymentHelper {
                 }
             } else {
                 String msg = '[accepted] But unsupported notification type = ' + notificationRequestItem.eventCode;
-                gatewayNotificationResponse.setResponseBody(Blob.valueOf( msg ));
+                gatewayNotificationResponse.setResponseBody(Blob.valueOf(msg));
                 gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             }
         } else {
             String msg = '[accepted] But not processed - wrong payment adapter or wrong instance';
-            gatewayNotificationResponse.setResponseBody(Blob.valueOf( msg ));
+            gatewayNotificationResponse.setResponseBody(Blob.valueOf(msg));
             gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after identifying that it was the wrong payment adapter = ' + gatewayNotificationResponse);
         }
@@ -248,7 +247,7 @@ public with sharing class AdyenPaymentHelper {
      * @see https://docs.adyen.com/development-resources/webhooks/understand-notifications
      */
     public static AdyenService.NotificationRequestItem parseAdyenNotificationRequest(CommercePayments.PaymentGatewayNotificationRequest notificationRequest) {
-        String requestBody = Test.isRunningTest() ? TEST_NR_BODY : AdyenPaymentUtility.makeSalesforceCompatible(notificationRequest.getRequestBody().toString());
+        String requestBody = Test.isRunningTest() ? TEST_NOTIFICATION_REQUEST_BODY : AdyenPaymentUtility.makeSalesforceCompatible(notificationRequest.getRequestBody().toString());
         AdyenService.AdyenNotification adyenNotification  = (AdyenService.AdyenNotification) JSON.deserialize(requestBody, AdyenService.AdyenNotification.class);
         AdyenService.NotificationRequestItem notificationRequestItem = new AdyenService.NotificationRequestItem();
         if(adyenNotification != null) {

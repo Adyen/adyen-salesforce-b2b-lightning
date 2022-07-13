@@ -366,7 +366,6 @@ public with sharing class AdyenPaymentUtility {
     *
     * @return response from adyen platform.
     */
-    //public static HttpResponse sendModificationRequest(CommercePayments.RequestType paymentType, ModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
     public static HttpResponse sendModificationRequest(ModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
         ModificationResponse adyenResponse;
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(modRequest));
@@ -376,13 +375,5 @@ public with sharing class AdyenPaymentUtility {
         client.setReference(modRequest.getOriginalReference());
         HttpResponse response = client.execute();
         return response;
-        /*
-        if (paymentType == CommercePayments.RequestType.Capture) {
-            adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), CaptureResponse.class);
-        } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
-            adyenResponse = (RefundResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(response.getBody()), RefundResponse.class);
-        }
-        return adyenResponse;
-        */
     }
 }

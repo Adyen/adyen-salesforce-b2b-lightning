@@ -40,7 +40,7 @@ public with sharing class AdyenCaptureHelper {
     }
 
      /**
-     * @param adyenResponse: Response from Adyens api after requesting a capture/refund
+     * @param adyenResponse: Response from Adyen's api after requesting a capture/refund
      * @return CommercePayments.GatewayResponse with populated properties.
      */
     public static CommercePayments.GatewayResponse processCaptureResponse(HttpResponse adyenHttpResponse, Double amount) {
@@ -56,7 +56,7 @@ public with sharing class AdyenCaptureHelper {
         if (adyenResponse != null && adyenHttpResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
            salesforceResponse.setGatewayReferenceNumber(adyenResponse.getPSPReference());
            salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-           if (adyenResponse.getStatus() == 'received') {
+           if (adyenResponse.getStatus() == AdyenConstants.NOTIFICATION_RECEIVED) {
             salesforceResponse.setGatewayMessage('[capture-received]');
            }
         } else {
