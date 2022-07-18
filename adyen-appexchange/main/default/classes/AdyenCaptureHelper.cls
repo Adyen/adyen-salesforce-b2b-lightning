@@ -24,17 +24,15 @@ public with sharing class AdyenCaptureHelper {
         if(errorMessage != null) {
             throw new AdyenAsyncAdapter.GatewayException(errorMessage);
         }
-
-        // By Default, retrieve the metadata key from the order's sales channel
-        String adapterName = String.isNotEmpty(pa.adyenOverrideMerchantConfig__c) ? pa.adyenOverrideMerchantConfig__c : pa.OrderPaymentSummary?.OrderSummary?.SalesChannel?.ADYENMERCHANTID__c;
+        /*
+        if (String.isNotBlank(pa.GatewayRefDetails)) {
+            adapterName = pa.GatewayRefDetails;
+        }
+        */
+        String adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : pa.CurrencyIsoCode;
-        ModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.Capture, currencyCode, captureRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
-        if(AdyenPaymentUtility.checkIfKlarnaOrderFromAuthorization(pa)) {
-            Map<String, Object> additionalData = AdyenPaymentUtility.getInvoiceData(pa);
-            modRequest.setAdditionalData(JSON.serialize(additionalData));
-        }
-        modRequest.setApplicationInfo(AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c));
+        CheckoutModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.Capture, currencyCode, captureRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
         HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, adyenAdapterMdt.Capture_Endpoint__c);
         return processCaptureResponse(adyenHttpResponse, captureRequest.amount);
     }
@@ -44,14 +42,12 @@ public with sharing class AdyenCaptureHelper {
      * @return CommercePayments.GatewayResponse with populated properties.
      */
     public static CommercePayments.GatewayResponse processCaptureResponse(HttpResponse adyenHttpResponse, Double amount) {
-        CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(adyenHttpResponse.getBody()), CaptureResponse.class);
+        CheckoutCaptureResponse adyenResponse = (CheckoutCaptureResponse)JSON.deserializeStrict(AdyenPaymentUtility.makeSalesforceCompatible(adyenHttpResponse.getBody()), CheckoutCaptureResponse.class);
         CommercePayments.CaptureResponse salesforceResponse = new CommercePayments.CaptureResponse();
         salesforceResponse.setAsync(true);
         salesforceResponse.setAmount(amount);
         salesforceResponse.setGatewayDate(System.now());
-        salesforceResponse.setGatewayReferenceDetails(adyenResponse.getReference());
         salesforceResponse.setGatewayResultCode(adyenResponse.getStatus());
-        salesforceResponse.setGatewayResultCodeDescription(adyenResponse.getMessage());
 
         if (adyenResponse != null && adyenHttpResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
            salesforceResponse.setGatewayReferenceNumber(adyenResponse.getPSPReference());
@@ -61,7 +57,6 @@ public with sharing class AdyenCaptureHelper {
            }
         } else {
            salesforceResponse.setGatewayReferenceNumber(null);
-           salesforceResponse.setGatewayMessage(adyenResponse.getMessage());
            salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
         }
         return salesforceResponse;

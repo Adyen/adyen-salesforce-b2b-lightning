@@ -73,9 +73,11 @@ public with sharing class AdyenPaymentHelper {
         client.setEndpoint(adyenAdapterMdt.Authorize_Endpoint__c);
         client.setBody(body);
         HttpResponse response = client.execute();
+    //    return processAuthResponse(response, authRequest.amount, adyenAdapterMdt.Merchant_Account__c);
         return processAuthResponse(response, authRequest.amount);
     }
 
+    //private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount, String merchantAccountName) {
     private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount) {
         Map<String,Object> body = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
         String resultCode = (String)body.get('resultCode');
@@ -93,6 +95,7 @@ public with sharing class AdyenPaymentHelper {
             salesforceAuthResponse.setGatewayReferenceNumber((String)body.get('pspReference'));
             salesforceAuthResponse.setAmount(amount);
             salesforceAuthResponse.setGatewayDate(System.now());
+           // salesforceAuthResponse.setGatewayReferenceDetails(merchantAccountName);
             return salesforceAuthResponse;
         } else {
             System.debug('-----> Adyen rejected request');
@@ -102,80 +105,6 @@ public with sharing class AdyenPaymentHelper {
             );
         }
     }
-
-    /**
-     * Calls the Service to post AUTHORIZATION REVERSAL to Adyen. Evaluates the response wrapped in custom class Adyen and sets appropirate
-     * props on CommercePayments.ReferenceRefundResponse.
-     *
-     * @param refundRequest   The CommercePayments.ReferencedRefundRequest Object.
-     * @return refundResponse  The CommercePayments.ReferencedRefundResponse Object.
-     *
-     * * General flow is AdyenService to post request JSON --> populateReferencedRefundResponse
-     *
-     * @see AdyenService
-
-    private static CommercePayments.GatewayResponse cancel(CommercePayments.AuthorizationReversalRequest cancelRequest) {
-        
-        PaymentAuthorization pa = AdyenPaymentUtility.retrievePaymentAuthorization(cancelRequest.PaymentAuthorizationId);
-        if(pa == null) throw new AdyenAsyncAdapter.GatewayException('Payment Authorization Missing');
-        String pspReference = AdyenPaymentUtility.getCaptureGatewayRefNumber(pa);
-        if(String.isBlank(pspReference)) throw new AdyenAsyncAdapter.GatewayException('PspReference Missing');
-
-        // By Default, retrieve the metadata key from the order's sales channel
-        String adapterName = String.isNotEmpty(pa.adyenOverrideMerchantConfig__c) ? pa.adyenOverrideMerchantConfig__c : pa.OrderPaymentSummary?.OrderSummary?.SalesChannel?.ADYENMERCHANTID__c; 
-        if(String.isBlank(adapterName)) adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
-        Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName); 
-
-        PaymentsRequest libRequest = new PaymentsRequest();
-        libRequest.reference = pspReference;
-        libRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-
-        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(libRequest));
-
-        AdyenService client = new AdyenService(adyenAdapterMdt);
-        client.setEndpoint(adyenAdapterMdt.Cancel_Endpoint__c);
-        client.setBody(body);
-        client.setReference(pspReference);
-
-        return processCancelResponse(client.execute(), cancelRequest.amount);
-    }
-
-    public static CommercePayments.GatewayResponse processCancelResponse(HttpResponse response, Double amount) {
-
-        //CaptureResponse adyenResponse = (CaptureResponse)JSON.deserializeStrict(response.getBody(), CaptureResponse.class);
-        CancelResponse adyenResponse = (CancelResponse)JSON.deserializeStrict(response.getBody(), CancelResponse.class);
-
-        CommercePayments.AuthorizationReversalResponse cancelResponse = new CommercePayments.AuthorizationReversalResponse();
-        //cancelResponse.setAsync(true);
-        cancelResponse.setAmount(amount);
-        cancelResponse.setGatewayDate(System.now());
-        cancelResponse.setGatewayMessage(adyenResponse.status);
-
-        if(adyenResponse != null && response.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
-            if(adyenResponse.errorCode == null) { // Adyen accepted Cancel request
-                cancelResponse.setGatewayReferenceNumber(adyenResponse.pspReference);
-                if(adyenResponse.status == AdyenConstants.NOTIFICATION_RECEIVED) cancelResponse.setGatewayMessage('[cancel-received]');
-                cancelResponse.setGatewayReferenceDetails(adyenResponse.reference);
-                cancelResponse.setGatewayResultCode(adyenResponse.status);
-                cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
-                cancelResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-            } else { // Adyen did not accepted cancel request
-                cancelResponse.setGatewayMessage(adyenResponse.message);
-                cancelResponse.setGatewayReferenceDetails(adyenResponse.message);
-                cancelResponse.setGatewayResultCode(adyenResponse.errorCode);
-                cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            }
-        } else { // HTTP connection issue
-            cancelResponse.setGatewayReferenceNumber(null);
-            cancelResponse.setGatewayMessage(adyenResponse.message);
-            cancelResponse.setGatewayReferenceDetails(adyenResponse.message);
-            cancelResponse.setGatewayResultCode(adyenResponse.errorCode);
-            cancelResponse.setGatewayResultCodeDescription(adyenResponse.message);
-            cancelResponse.setSalesforceResultCodeInfo(AdyenConstants.SYSTEM_ERROR_SALESFORCE_RESULT_CODE_INFO);
-        }
-        return cancelResponse;
-    }
-    */
 
     /**
      * ------------------------------------------------------------------------

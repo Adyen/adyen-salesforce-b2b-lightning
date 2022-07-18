@@ -81,17 +81,12 @@ public with sharing class AdyenPaymentUtility {
     public static Payment retrievePayment(Id paymentId) {
         if (
             Schema.sObjectType.Payment.fields.Id.isAccessible() && 
-            Schema.sObjectType.Payment.fields.GatewayRefNumber.isAccessible() && 
-            Schema.sObjectType.Payment.fields.adyenOverrideMerchantConfig__c.isAccessible() &&
-            Schema.sObjectType.PaymentAuthorization.fields.GatewayRefNumber.isAccessible() && 
-            Schema.sObjectType.PaymentAuthorization.fields.adyenOverrideMerchantConfig__c.isAccessible() &&
+            Schema.sObjectType.Payment.fields.GatewayRefNumber.isAccessible() &&
+            Schema.sObjectType.PaymentAuthorization.fields.GatewayRefNumber.isAccessible() &&
             Schema.sObjectType.Payment.fields.CurrencyIsoCode.isAccessible() && 
-            Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible() && 
-            Schema.sObjectType.SalesChannel.fields.AdyenMerchantID__c.isAccessible()
+            Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible()
         ) {
-            return [SELECT Id, GatewayRefNumber, PaymentAuthorization.GatewayRefNumber, 
-                        adyenOverrideMerchantConfig__c, PaymentAuthorization.adyenOverrideMerchantConfig__c,
-                        OrderPaymentSummary.OrderSummary.SalesChannel.AdyenMerchantID__c,
+            return [SELECT Id, GatewayRefNumber, PaymentAuthorization.GatewayRefNumber,
                         CurrencyIsoCode, OrderPaymentSummary.FullName
                     FROM Payment
                     WHERE Id = :paymentId
@@ -151,19 +146,15 @@ public with sharing class AdyenPaymentUtility {
             Schema.sObjectType.PaymentAuthorization.fields.PaymentAuthorizationNumber.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.GatewayRefNumber.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.CurrencyIsoCode.isAccessible() &&
-            Schema.sObjectType.PaymentAuthorization.fields.adyenOverrideMerchantConfig__c.isAccessible() &&
             Schema.sObjectType.PaymentGatewayLog.fields.GatewayRefNumber.isAccessible() &&
             Schema.sObjectType.OrderPaymentSummary.fields.Id.isAccessible() &&
-            Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible() && 
-            Schema.sObjectType.SalesChannel.fields.ADYENMERCHANTID__c.isAccessible()
+            Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible()
         )
-            return [SELECT Id, PaymentAuthorizationNumber, GatewayRefNumber, adyenOverrideMerchantConfig__c,
+            return [SELECT Id, PaymentAuthorizationNumber, GatewayRefNumber,
                         OrderPaymentSummary.LastPaymentGatewayLog.GatewayRefNumber,
                         OrderPaymentSummary.Id,
                         OrderPaymentSummary.FullName, CurrencyIsoCode,
-                        OrderPaymentSummary.OrderSummary.Id,
-                        OrderPaymentSummary.OrderSummary.Adyen_paymentMethod__c,
-                        OrderPaymentSummary.OrderSummary.SalesChannel.ADYENMERCHANTID__c
+                        OrderPaymentSummary.OrderSummary.Id
                     FROM PaymentAuthorization
                     WHERE Id = :paymentAuthId
                     ORDER BY CreatedDate DESC
@@ -171,28 +162,6 @@ public with sharing class AdyenPaymentUtility {
         else {
             return null;
         }
-    }
-
-    /**
-    * Check if Klarna Order.
-    *
-    * @param paymentAuthId The sObject PaymentAuthorizationId
-    * @return Boolean denoting if the Authorization Id belongs to a Klarna Order.
-    */
-    public static Boolean checkIfKlarnaOrderFromAuthorization(PaymentAuthorization pa) {
-        if (pa == null) {
-            throw new AdyenAsyncAdapter.GatewayException('Payment Authorization Missing');
-        }
-        if (Test.isRunningTest()) {
-            return true;
-        }
-
-        Boolean isKlarnaOrder = false;
-
-        if (pa.OrderPaymentSummary?.OrderSummary?.Adyen_paymentMethod__c != null) {
-            isKlarnaOrder = pa.OrderPaymentSummary.OrderSummary.Adyen_paymentMethod__c.containsIgnoreCase('klarna');
-        }
-        return isKlarnaOrder;
     }
 
     /**
@@ -342,17 +311,16 @@ public with sharing class AdyenPaymentUtility {
     /**
     * Create a modification request by populating required properties (payment/refund)
     *
-    * @return ModificationRequest to send to Adyen.
+    * @return CheckoutModificationRequest to send to Adyen.
     */
-    public static ModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String currencyCode, Double amount, String pspReference, String merchantAccount) {
-       ModificationRequest modRequest;
+    public static CheckoutModificationRequest createModificationRequest(CommercePayments.RequestType paymentType, String currencyCode, Double amount, String pspReference, String merchantAccount) {
+       CheckoutModificationRequest modRequest;
        if (paymentType == CommercePayments.RequestType.Capture) {
-         modRequest = new CaptureRequest();
+         modRequest = new CheckoutCaptureRequest();
        } else if (paymentType == CommercePayments.RequestType.ReferencedRefund) {
-         modRequest = new RefundRequest();
+         modRequest = new CheckoutRefundRequest();
        }
        modRequest.setReference(AdyenPaymentUtility.getRandomNumber(16));
-       modRequest.setOriginalReference(pspReference);
        modRequest.setMerchantAccount(merchantAccount);
        Amount requestAmount = new Amount();
        requestAmount.value = (amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
@@ -366,13 +334,12 @@ public with sharing class AdyenPaymentUtility {
     *
     * @return response from adyen platform.
     */
-    public static HttpResponse sendModificationRequest(ModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
-        ModificationResponse adyenResponse;
+    public static HttpResponse sendModificationRequest(CheckoutModificationRequest modRequest, Adyen_Adapter__mdt adyenAdapterMdt, String endPoint) {
+        CheckoutModificationResponse adyenResponse;
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(modRequest));
         AdyenService client = new AdyenService(adyenAdapterMdt);
         client.setEndpoint(endPoint);
         client.setBody(body);
-        client.setReference(modRequest.getOriginalReference());
         HttpResponse response = client.execute();
         return response;
     }
