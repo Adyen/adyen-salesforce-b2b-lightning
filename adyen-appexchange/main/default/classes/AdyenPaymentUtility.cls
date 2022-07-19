@@ -61,6 +61,13 @@ public with sharing class AdyenPaymentUtility {
     }
 
     /**
+    * Round an amount to a normalized value for consistency
+    */
+    public static Double normalizeAmount(Double amount) {
+        return Double.valueOf(Decimal.valueOf(amount).setScale(2, System.RoundingMode.HALF_EVEN));
+    }
+
+    /**
     * Get the shopper reference from the card payment method.
     * - GatewayTokenDetails should be populated with the value from the Adyen tokenization response
     * - An encoded hash of the user's email

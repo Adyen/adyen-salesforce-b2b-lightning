@@ -46,10 +46,10 @@ public with sharing class AdyenPaymentHelper {
         String currencyCode = authRequest.currencyIsoCode.toUppercase();
 
         AuthorisationRequest authorizationRequest = new AuthorisationRequest();
-
+        Double authAmount = AdyenPaymentUtility.normalizeAmount(authRequest.amount);
         authorizationRequest.amount = new Amount();
         authorizationRequest.amount.currency_x = currencyCode;
-        authorizationRequest.amount.value = (authRequest.amount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
+        authorizationRequest.amount.value = (authAmount * AdyenPaymentUtility.getAmountMultiplier(currencyCode)).longValue();
 
         CommercePayments.CardPaymentMethodRequest cpmRequest;
         if(paymentMethod != null) {
@@ -73,7 +73,7 @@ public with sharing class AdyenPaymentHelper {
         client.setEndpoint(adyenAdapterMdt.Authorize_Endpoint__c);
         client.setBody(body);
         HttpResponse response = client.execute();
-        return processAuthResponse(response, authRequest.amount, adyenAdapterMdt.Merchant_Account__c);
+        return processAuthResponse(response, authAmount, adyenAdapterMdt.Merchant_Account__c);
     }
 
     private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount, String merchantAccountName) {
