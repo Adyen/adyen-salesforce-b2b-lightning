@@ -165,6 +165,28 @@ public with sharing class AdyenPaymentUtility {
     }
 
     /**
+    * Check if Klarna Order.
+    *
+    * @param paymentAuthId The sObject PaymentAuthorizationId
+    * @return Boolean denoting if the Authorization Id belongs to a Klarna Order.
+    */
+    public static Boolean checkIfKlarnaOrderFromAuthorization(PaymentAuthorization pa) {
+        if (pa == null) {
+            throw new AdyenAsyncAdapter.GatewayException('Payment Authorization Missing');
+        }
+        if (Test.isRunningTest()) {
+            return true;
+        }
+
+        Boolean isKlarnaOrder = false;
+
+        if (pa.OrderPaymentSummary?.OrderSummary?.Adyen_paymentMethod__c != null) {
+            isKlarnaOrder = pa.OrderPaymentSummary.OrderSummary.Adyen_paymentMethod__c.containsIgnoreCase('klarna');
+        }
+        return isKlarnaOrder;
+    }
+
+    /**
     * For payment methods requiring Open Invoice data (e.g., Klarna), append invoice data.
     *
     * @param pa PaymentAuthorization

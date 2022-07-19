@@ -25,13 +25,21 @@ public with sharing class AdyenRefundHelper {
         if(errorMessage != null) {
             throw new AdyenAsyncAdapter.GatewayException(errorMessage);
         }
-        String adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
+        String adapterName;
+        if (String.isNotBlank(payment.PaymentAuthorization.GatewayRefDetails)) {
+            adapterName = payment.PaymentAuthorization.GatewayRefDetails;
+        } else {
+            adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
+        }
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
 
         String currencyCode = adyenAdapterMdt.Single_Currency_Code__c != null ? adyenAdapterMdt.Single_Currency_Code__c : payment.CurrencyIsoCode.toUppercase();
         String pspReference = (payment.OrderPaymentSummary.FullName == 'DeclineRefund' ? 'dummytransaction' : AdyenPaymentUtility.getRefundGatewayRefNumber(payment));
         CheckoutModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.ReferencedRefund, currencyCode, refundRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
-        HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, adyenAdapterMdt.Refund_Endpoint__c);
+        String refundEndPointURL = adyenAdapterMdt.Refund_Endpoint__c;
+        refundEndPointURL = refundEndPointURL.replace('{paymentPspReference}', pspReference);
+        System.debug('refundEndPointURL :: '+ refundEndPointURL);
+        HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, refundEndPointURL);
         return processRefundResponse(adyenHttpResponse, refundRequest.amount);
     }
 
@@ -45,12 +53,13 @@ public with sharing class AdyenRefundHelper {
         salesforceResponse.setAsync(true);
         salesforceResponse.setAmount(amount);
         salesforceResponse.setGatewayDate(System.now());
+        salesforceResponse.setGatewayReferenceDetails(adyenResponse.getReference());
         salesforceResponse.setGatewayResultCode(adyenResponse.getStatus());
 
         if (adyenResponse != null && adyenHttpResponse.getStatusCode() != AdyenConstants.HTTP_ERROR_CODE) { // HTTP connection with Adyen was successful
            salesforceResponse.setGatewayReferenceNumber(adyenResponse.getPSPReference());
            salesforceResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
-           if (adyenResponse.getStatus() == AdyenConstants.NOTIFICATION_RECEIVED) {
+           if (adyenResponse.getStatus() == AdyenConstants.NOTIFICATION_RECEIVED_CHECKOUT) {
             salesforceResponse.setGatewayMessage('[refund-received]');
            }
         } else {

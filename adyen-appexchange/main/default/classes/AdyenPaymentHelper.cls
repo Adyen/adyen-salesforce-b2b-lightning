@@ -73,12 +73,10 @@ public with sharing class AdyenPaymentHelper {
         client.setEndpoint(adyenAdapterMdt.Authorize_Endpoint__c);
         client.setBody(body);
         HttpResponse response = client.execute();
-    //    return processAuthResponse(response, authRequest.amount, adyenAdapterMdt.Merchant_Account__c);
-        return processAuthResponse(response, authRequest.amount);
+        return processAuthResponse(response, authRequest.amount, adyenAdapterMdt.Merchant_Account__c);
     }
 
-    //private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount, String merchantAccountName) {
-    private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount) {
+    private static CommercePayments.GatewayResponse processAuthResponse(HttpResponse response, Double amount, String merchantAccountName) {
         Map<String,Object> body = (Map<String,Object>)JSON.deserializeUntyped(response.getBody());
         String resultCode = (String)body.get('resultCode');
         if(resultCode != null) {
@@ -95,7 +93,7 @@ public with sharing class AdyenPaymentHelper {
             salesforceAuthResponse.setGatewayReferenceNumber((String)body.get('pspReference'));
             salesforceAuthResponse.setAmount(amount);
             salesforceAuthResponse.setGatewayDate(System.now());
-           // salesforceAuthResponse.setGatewayReferenceDetails(merchantAccountName);
+            salesforceAuthResponse.setGatewayReferenceDetails(merchantAccountName);
             return salesforceAuthResponse;
         } else {
             System.debug('-----> Adyen rejected request');

@@ -15,7 +15,7 @@ public with sharing class AdyenConstants {
     @TestVisible
     public static final String NOTIFICATION_ACCEPTED_RESPONSE     = '[accepted]';
     @TestVisible
-    public static final String NOTIFICATION_RECEIVED     = '[received]';
+    public static final String NOTIFICATION_RECEIVED_CHECKOUT  = 'received';
 
     public static final CommercePayments.SalesforceResultCodeInfo SUCCESS_SALESFORCE_RESULT_CODE_INFO =
             new CommercePayments.SalesforceResultCodeInfo(CommercePayments.SalesforceResultCode.Success);

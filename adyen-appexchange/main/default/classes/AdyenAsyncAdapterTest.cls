@@ -22,7 +22,7 @@ global class AdyenAsyncAdapterTest {
             res.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
             Map<String, Object> responseBody = new Map<String, Object> {
                 'pspReference' => TEST_PSP_REFERENCE,
-                'status' => AdyenConstants.NOTIFICATION_RECEIVED
+                'status' => AdyenConstants.NOTIFICATION_RECEIVED_CHECKOUT
             };
             Map<String, Object> additionalData = new Map<String, Object>();
             Map<String, Object> amount = new Map<String, Object> {
