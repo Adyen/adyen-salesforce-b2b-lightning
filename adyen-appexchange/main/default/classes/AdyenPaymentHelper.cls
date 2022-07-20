@@ -67,7 +67,7 @@ public with sharing class AdyenPaymentHelper {
         authorizationRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
         authorizationRequest.shopperInteraction = AuthorisationRequest.shopperInteractionEnum.Ecommerce;
         authorizationRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
-        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(authorizationRequest));
+        String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(authorizationRequest, true));
         AdyenService client = new AdyenService(adyenAdapterMdt);
         client.setEndpoint(adyenAdapterMdt.Authorize_Endpoint__c);
         client.setBody(body);
