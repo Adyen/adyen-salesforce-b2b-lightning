@@ -41,9 +41,6 @@ public with sharing class AdyenService {
 
     public HttpResponse execute() {
         HttpRequest request = new HttpRequest();
-
-        if(String.isNotEmpty(this.pspReference) && this.endpoint.contains(REFERENCE_MERGE_FIELD)) this.mergeEndpointReference();
-    
         request.setEndpoint(this.uri + this.endpoint);
         request.setMethod(this.method);
         request.setBody(this.body);
