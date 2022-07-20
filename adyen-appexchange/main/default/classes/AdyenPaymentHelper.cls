@@ -65,7 +65,6 @@ public with sharing class AdyenPaymentHelper {
 
         authorizationRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
         authorizationRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-        authorizationRequest.shopperIp = authRequest?.ipAddress;
         authorizationRequest.shopperInteraction = AuthorisationRequest.shopperInteractionEnum.Ecommerce;
         authorizationRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(authorizationRequest));
