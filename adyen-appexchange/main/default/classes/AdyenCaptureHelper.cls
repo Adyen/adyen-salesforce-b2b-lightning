@@ -33,7 +33,6 @@ public with sharing class AdyenCaptureHelper {
         CheckoutModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.Capture, currencyCode, captureRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
         String captureEndPointURL = adyenAdapterMdt.Capture_Endpoint__c;
         captureEndPointURL = captureEndPointURL.replace('{paymentPspReference}', pspReference);
-        System.debug('captureEndPointURL :: '+ captureEndPointURL);
         HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, captureEndPointURL);
         return processCaptureResponse(adyenHttpResponse, captureRequest.amount);
     }

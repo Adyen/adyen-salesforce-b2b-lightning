@@ -35,7 +35,6 @@ public with sharing class AdyenRefundHelper {
         CheckoutModificationRequest modRequest = AdyenPaymentUtility.createModificationRequest(CommercePayments.RequestType.ReferencedRefund, currencyCode, refundRequest.amount, pspReference, adyenAdapterMdt.Merchant_Account__c);
         String refundEndPointURL = adyenAdapterMdt.Refund_Endpoint__c;
         refundEndPointURL = refundEndPointURL.replace('{paymentPspReference}', pspReference);
-        System.debug('refundEndPointURL :: '+ refundEndPointURL);
         HttpResponse adyenHttpResponse = AdyenPaymentUtility.sendModificationRequest(modRequest, adyenAdapterMdt, refundEndPointURL);
         return processRefundResponse(adyenHttpResponse, refundRequest.amount);
     }

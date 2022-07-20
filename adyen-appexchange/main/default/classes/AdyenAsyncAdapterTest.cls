@@ -115,7 +115,6 @@ global class AdyenAsyncAdapterTest {
             PaymentAuthorizationId = pa.Id
         );
         insert p;
-        system.debug('mmm testsetup paymentId' + p.Id);
     }
 
     @IsTest

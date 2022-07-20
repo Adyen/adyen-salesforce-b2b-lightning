@@ -121,7 +121,7 @@ public with sharing class AdyenPaymentHelper {
 
         notificationRequestItem = parseAdyenNotificationRequest( paymentGatewayNotificationRequest );
 
-        String pspReference = notificationRequestItem.originalReference != null ? notificationRequestItem.originalReference : notificationRequestItem.paymentPspReference;
+        String pspReference = notificationRequestItem.originalReference != null ? notificationRequestItem.originalReference : notificationRequestItem.pspReference;
         String apexAdapterId = AdyenPaymentUtility.retrieveApexAdapterId(pspReference);
         System.debug('---->apexAdapterId =' + apexAdapterId);
 

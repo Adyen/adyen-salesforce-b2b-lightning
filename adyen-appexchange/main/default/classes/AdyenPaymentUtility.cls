@@ -115,7 +115,7 @@ public with sharing class AdyenPaymentUtility {
             return new Adyen_Adapter__mdt(
                 MasterLabel = 'AdyenDefault',
                 Single_Currency_Code__c = 'USD',
-                System_Integrator_Name__c = 'CAPGEMINI',
+                System_Integrator_Name__c = 'Test integrator',
                 Endpoint_Method__c = 'POST',
                 Authorize_Endpoint__c = '/payments',
                 Refund_Endpoint__c = '/{paymentPspReference}/refund',
@@ -327,13 +327,12 @@ public with sharing class AdyenPaymentUtility {
         ApplicationInfo info = new ApplicationInfo();
 
         CommonField merchantApplication = new CommonField();
-        merchantApplication.name = 'AdyenSOM';
+        merchantApplication.name = 'adyen-salesforce-b2b-lightning';
         merchantApplication.version = '1.0';
         info.merchantApplication = merchantApplication;
 
         ExternalPlatform exPlatform = new ExternalPlatform();
-        exPlatform.name = 'Salesforce Order Management';
-        exPlatform.version = '2020_winter';
+        exPlatform.name = 'Salesforce B2B Lightning';
         exPlatform.integrator = integratorName;
         info.externalPlatform = exPlatform;
         return info;
