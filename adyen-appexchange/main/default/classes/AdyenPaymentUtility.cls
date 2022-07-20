@@ -90,10 +90,11 @@ public with sharing class AdyenPaymentUtility {
             Schema.sObjectType.Payment.fields.Id.isAccessible() && 
             Schema.sObjectType.Payment.fields.GatewayRefNumber.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.GatewayRefNumber.isAccessible() &&
+            Schema.sObjectType.PaymentAuthorization.fields.GatewayRefDetails.isAccessible() &&
             Schema.sObjectType.Payment.fields.CurrencyIsoCode.isAccessible() && 
             Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible()
         ) {
-            return [SELECT Id, GatewayRefNumber, PaymentAuthorization.GatewayRefNumber,
+            return [SELECT Id, GatewayRefNumber, PaymentAuthorization.GatewayRefNumber, PaymentAuthorization.GatewayRefDetails,
                         CurrencyIsoCode, OrderPaymentSummary.FullName
                     FROM Payment
                     WHERE Id = :paymentId
@@ -152,12 +153,13 @@ public with sharing class AdyenPaymentUtility {
             Schema.sObjectType.PaymentAuthorization.fields.Id.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.PaymentAuthorizationNumber.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.GatewayRefNumber.isAccessible() &&
+            Schema.sObjectType.PaymentAuthorization.fields.GatewayRefDetails.isAccessible() &&
             Schema.sObjectType.PaymentAuthorization.fields.CurrencyIsoCode.isAccessible() &&
             Schema.sObjectType.PaymentGatewayLog.fields.GatewayRefNumber.isAccessible() &&
             Schema.sObjectType.OrderPaymentSummary.fields.Id.isAccessible() &&
             Schema.sObjectType.OrderPaymentSummary.fields.FullName.isAccessible()
         )
-            return [SELECT Id, PaymentAuthorizationNumber, GatewayRefNumber,
+            return [SELECT Id, PaymentAuthorizationNumber, GatewayRefNumber, GatewayRefDetails,
                         OrderPaymentSummary.LastPaymentGatewayLog.GatewayRefNumber,
                         OrderPaymentSummary.Id,
                         OrderPaymentSummary.FullName, CurrencyIsoCode,

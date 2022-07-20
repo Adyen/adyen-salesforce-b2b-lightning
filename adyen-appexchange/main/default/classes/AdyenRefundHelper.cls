@@ -14,7 +14,7 @@ public with sharing class AdyenRefundHelper {
 
         // Retrieve the Payment
         Payment payment = AdyenPaymentUtility.retrievePayment(refundRequest.PaymentId);
-
+        String adapterName = payment?.PaymentAuthorization?.GatewayRefDetails;
         String errorMessage = null;
         if(payment == null) {
             errorMessage = 'Payment Info Missing';
@@ -25,10 +25,7 @@ public with sharing class AdyenRefundHelper {
         if(errorMessage != null) {
             throw new AdyenAsyncAdapter.GatewayException(errorMessage);
         }
-        String adapterName;
-        if (String.isNotBlank(payment.PaymentAuthorization.GatewayRefDetails)) {
-            adapterName = payment.PaymentAuthorization.GatewayRefDetails;
-        } else {
+        if (String.isBlank(adapterName)) {
             adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
         }
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);

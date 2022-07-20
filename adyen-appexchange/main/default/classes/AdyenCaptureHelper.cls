@@ -24,10 +24,8 @@ public with sharing class AdyenCaptureHelper {
         if(errorMessage != null) {
             throw new AdyenAsyncAdapter.GatewayException(errorMessage);
         }
-        String adapterName;
-        if (String.isNotBlank(pa.GatewayRefDetails)) {
-            adapterName = pa.GatewayRefDetails;
-        } else {
+        String adapterName = pa.GatewayRefDetails;
+        if (String.isBlank(pa.GatewayRefDetails)) {
             adapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
         }
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(adapterName);
