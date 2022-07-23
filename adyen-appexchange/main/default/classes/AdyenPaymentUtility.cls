@@ -8,6 +8,8 @@ public with sharing class AdyenPaymentUtility {
         'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
     };
 
+    public static Boolean skipMerchantAccount = false;
+
     /**
     * Convert a request body from the adyen apex library into an api consumable json string
     * (strips the '_x' from attributes that would otherwise be Apex reserved keywords)
@@ -68,18 +70,6 @@ public with sharing class AdyenPaymentUtility {
     }
 
     /**
-    * Get the shopper reference from the card payment method.
-    * - GatewayTokenDetails should be populated with the value from the Adyen tokenization response
-    * - An encoded hash of the user's email
-    */
-    public static String getShopperReference(CardPaymentMethod cpm) {
-        if (String.isNotEmpty(cpm.GatewayTokenDetails)) {
-            return cpm.GatewayTokenDetails;
-        }
-        else return EncodingUtil.base64Encode(Crypto.generateDigest('SHA-256', Blob.valueOf(cpm.CardHolderName + cpm.Email)));
-    }
-
-    /**
     * Retrieve Payment Info.
     *
     * @param paymentId The Payment.Id value
@@ -110,8 +100,11 @@ public with sharing class AdyenPaymentUtility {
     *  @return Adyen_Adapter__mdt for the passed metadata type with all fields.
     */
     public static Adyen_Adapter__mdt retrieveGatewayMetadata(String metaType) {
-
+        String merchantAccountName = TEST_MERCHANT_ACCOUNT;
         if(Test.isRunningTest()) {
+            if (skipMerchantAccount) {
+                merchantAccountName = '';
+            }
             return new Adyen_Adapter__mdt(
                 MasterLabel = 'AdyenDefault',
                 Single_Currency_Code__c = 'USD',
@@ -120,7 +113,8 @@ public with sharing class AdyenPaymentUtility {
                 Authorize_Endpoint__c = '/payments',
                 Refund_Endpoint__c = '/{paymentPspReference}/refund',
                 Capture_Endpoint__c = '/{paymentPspReference}/capture',
-                Endpoint_Api_Version__c = '/v1'
+                Endpoint_Api_Version__c = '/v1',
+                Merchant_Account__c = merchantAccountName
             );
         } else if (
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Developername.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.NamespacePrefix.isAccessible() &&
