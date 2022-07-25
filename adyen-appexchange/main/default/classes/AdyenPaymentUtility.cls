@@ -100,7 +100,7 @@ public with sharing class AdyenPaymentUtility {
     *  @return Adyen_Adapter__mdt for the passed metadata type with all fields.
     */
     public static Adyen_Adapter__mdt retrieveGatewayMetadata(String metaType) {
-        String merchantAccountName = TEST_MERCHANT_ACCOUNT;
+        String merchantAccountName = 'TEST_MERCHANT_ACCOUNT';
         if(Test.isRunningTest()) {
             if (skipMerchantAccount) {
                 merchantAccountName = '';
