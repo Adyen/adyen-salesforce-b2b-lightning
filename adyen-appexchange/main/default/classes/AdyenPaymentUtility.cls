@@ -8,6 +8,12 @@ public with sharing class AdyenPaymentUtility {
         'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
     };
 
+    public static final String EXTERNAL_PLATFORM_NAME_FOR_APPINFO = 'Salesforce B2B Lightning';
+    public static final String ADYEN_LIBRARY_NAME_FOR_APPINFO = 'adyen-apex-api-library';
+    public static final String ADYEN_LIBRARY_VERSION_FOR_APPINFO = '2.0.0';
+    public static final String MERCHANT_APP_NAME_FOR_APPINFO = 'adyen-payments-for-b2b-lightning';
+    public static final String MERCHANT_APP_VERSION_FOR_APPINFO = '1.0.0';
+
     /**
     * Convert a request body from the adyen apex library into an api consumable json string
     * (strips the '_x' from attributes that would otherwise be Apex reserved keywords)
@@ -326,15 +332,21 @@ public with sharing class AdyenPaymentUtility {
 
         ApplicationInfo info = new ApplicationInfo();
 
-        CommonField merchantApplication = new CommonField();
-        merchantApplication.name = 'adyen-salesforce-b2b-lightning';
-        merchantApplication.version = '1.0';
-        info.merchantApplication = merchantApplication;
-
-        ExternalPlatform exPlatform = new ExternalPlatform();
-        exPlatform.name = 'Salesforce B2B Lightning';
+     	ExternalPlatform exPlatform = new ExternalPlatform();
+        exPlatform.name = EXTERNAL_PLATFORM_NAME_FOR_APPINFO;
         exPlatform.integrator = integratorName;
         info.externalPlatform = exPlatform;
+
+        CommonField merchantApplication = new CommonField();
+        merchantApplication.name = MERCHANT_APP_NAME_FOR_APPINFO;
+        merchantApplication.version = MERCHANT_APP_VERSION_FOR_APPINFO;
+        info.merchantApplication = merchantApplication;
+
+     	CommonField adyenLibrary = new CommonField();
+     	adyenLibrary.name = ADYEN_LIBRARY_NAME_FOR_APPINFO;
+     	adyenLibrary.version = ADYEN_LIBRARY_VERSION_FOR_APPINFO;
+	    info.adyenLibrary = adyenLibrary;
+
         return info;
     }
 
