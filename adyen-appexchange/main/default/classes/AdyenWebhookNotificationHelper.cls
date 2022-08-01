@@ -1,6 +1,5 @@
 public with sharing class AdyenWebhookNotificationHelper {
 
-    @TestVisible
     public static String TEST_NOTIFICATION_REQUEST_BODY;
 
     /**
@@ -12,7 +11,7 @@ public with sharing class AdyenWebhookNotificationHelper {
         CommercePayments.PaymentGatewayNotificationContext gatewayNotificationContext,
         String apexName
     ) {
-        System.debug('---->Entering AdyenPaymentHelper.handleAsyncNotificationCallback PaymentGatewayNotificationContext = ' + gatewayNotificationContext);
+        System.debug('---->Entering AdyenWebhookNotificationHelper.handleAsyncNotificationCallback PaymentGatewayNotificationContext = ' + gatewayNotificationContext);
         CommercePayments.PaymentGatewayNotificationRequest paymentGatewayNotificationRequest = Test.isRunningTest() ? null : gatewayNotificationContext.getPaymentGatewayNotificationRequest();
         CommercePayments.GatewayNotificationResponse gatewayNotificationResponse = new CommercePayments.GatewayNotificationResponse();
 
@@ -41,7 +40,7 @@ public with sharing class AdyenWebhookNotificationHelper {
                 if(notificationSaveResult.isSuccess()) { // Notification is accepted by the platform
                     gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
                     gatewayNotificationResponse.setResponseBody(Blob.valueOf(AdyenConstants.NOTIFICATION_ACCEPTED_RESPONSE));
-                    System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after the notification is accepted = ' + gatewayNotificationResponse);
+                    System.debug('---->Exiting AdyenWebhookNotificationHelper.handleAsyncNotificationCallback after the notification is accepted = ' + gatewayNotificationResponse);
                 } else { // Notification is not accepted by the platform, generate system event
                     String msg = '[accepted] ';
                     if(notificationSaveResult != null && notificationSaveResult.getErrorMessage() != null) {
@@ -59,7 +58,7 @@ public with sharing class AdyenWebhookNotificationHelper {
             String msg = '[accepted] But not processed - wrong payment adapter or wrong instance';
             gatewayNotificationResponse.setResponseBody(Blob.valueOf(msg));
             gatewayNotificationResponse.setStatusCode(AdyenConstants.HTTP_SUCCESS_CODE);
-            System.debug('---->Exiting AdyenPaymentHelper.handleAsyncNotificationCallback after identifying that it was the wrong payment adapter = ' + gatewayNotificationResponse);
+            System.debug('---->Exiting AdyenWebhookNotificationHelper.handleAsyncNotificationCallback after identifying that it was the wrong payment adapter = ' + gatewayNotificationResponse);
         }
         return gatewayNotificationResponse;
     }
@@ -122,7 +121,7 @@ public with sharing class AdyenWebhookNotificationHelper {
             notification = new CommercePayments.AuthorizationNotification();
         */
         } else {
-            System.debug('---> Exiting AdyenPaymentHelper.createNotificationSaveResult after ignoring unsupported notification = ' + notificationRequestItem.eventCode);
+            System.debug('---> Exiting AdyenWebhookNotificationHelper.createNotificationSaveResult after ignoring unsupported notification = ' + notificationRequestItem.eventCode);
             return null;
         }
 
