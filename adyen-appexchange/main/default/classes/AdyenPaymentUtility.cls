@@ -8,11 +8,15 @@ public with sharing class AdyenPaymentUtility {
         'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
     };
 
+
     public static final String EXTERNAL_PLATFORM_NAME_FOR_APPINFO = 'Salesforce B2B Lightning';
     public static final String ADYEN_LIBRARY_NAME_FOR_APPINFO = 'adyen-apex-api-library';
     public static final String ADYEN_LIBRARY_VERSION_FOR_APPINFO = '2.0.0';
     public static final String MERCHANT_APP_NAME_FOR_APPINFO = 'adyen-payments-for-b2b-lightning';
     public static final String MERCHANT_APP_VERSION_FOR_APPINFO = '1.0.0';
+
+    public static Boolean skipMerchantAccount = false;
+
 
     /**
     * Convert a request body from the adyen apex library into an api consumable json string
@@ -74,18 +78,6 @@ public with sharing class AdyenPaymentUtility {
     }
 
     /**
-    * Get the shopper reference from the card payment method.
-    * - GatewayTokenDetails should be populated with the value from the Adyen tokenization response
-    * - An encoded hash of the user's email
-    */
-    public static String getShopperReference(CardPaymentMethod cpm) {
-        if (String.isNotEmpty(cpm.GatewayTokenDetails)) {
-            return cpm.GatewayTokenDetails;
-        }
-        else return EncodingUtil.base64Encode(Crypto.generateDigest('SHA-256', Blob.valueOf(cpm.CardHolderName + cpm.Email)));
-    }
-
-    /**
     * Retrieve Payment Info.
     *
     * @param paymentId The Payment.Id value
@@ -116,8 +108,11 @@ public with sharing class AdyenPaymentUtility {
     *  @return Adyen_Adapter__mdt for the passed metadata type with all fields.
     */
     public static Adyen_Adapter__mdt retrieveGatewayMetadata(String metaType) {
-
+        String merchantAccountName = 'TEST_MERCHANT_ACCOUNT';
         if(Test.isRunningTest()) {
+            if (skipMerchantAccount) {
+                merchantAccountName = '';
+            }
             return new Adyen_Adapter__mdt(
                 MasterLabel = 'AdyenDefault',
                 Single_Currency_Code__c = 'USD',
@@ -126,7 +121,8 @@ public with sharing class AdyenPaymentUtility {
                 Authorize_Endpoint__c = '/payments',
                 Refund_Endpoint__c = '/{paymentPspReference}/refund',
                 Capture_Endpoint__c = '/{paymentPspReference}/capture',
-                Endpoint_Api_Version__c = '/v1'
+                Endpoint_Api_Version__c = '/v1',
+                Merchant_Account__c = merchantAccountName
             );
         } else if (
             Schema.sObjectType.Adyen_Adapter__mdt.fields.Developername.isAccessible() && Schema.sObjectType.Adyen_Adapter__mdt.fields.NamespacePrefix.isAccessible() &&
@@ -177,71 +173,6 @@ public with sharing class AdyenPaymentUtility {
         else {
             return null;
         }
-    }
-
-    /**
-    * Check if Klarna Order.
-    *
-    * @param paymentAuthId The sObject PaymentAuthorizationId
-    * @return Boolean denoting if the Authorization Id belongs to a Klarna Order.
-    */
-    public static Boolean checkIfKlarnaOrderFromAuthorization(PaymentAuthorization pa) {
-        if (pa == null) {
-            throw new AdyenAsyncAdapter.GatewayException('Payment Authorization Missing');
-        }
-        if (Test.isRunningTest()) {
-            return true;
-        }
-
-        Boolean isKlarnaOrder = false;
-
-        if (pa.OrderPaymentSummary?.OrderSummary?.Adyen_paymentMethod__c != null) {
-            isKlarnaOrder = pa.OrderPaymentSummary.OrderSummary.Adyen_paymentMethod__c.containsIgnoreCase('klarna');
-        }
-        return isKlarnaOrder;
-    }
-
-    /**
-    * For payment methods requiring Open Invoice data (e.g., Klarna), append invoice data.
-    *
-    * @param pa PaymentAuthorization
-    * @return Map<String, Object> invoice data in key-value pairs
-    */
-    public static Map<String, Object> getInvoiceData(PaymentAuthorization pa) {
-            // Get invoice id
-            List<Id> invoiceIds = new List<Id>();
-            if (pa?.OrderPaymentSummary?.OrderSummary?.Invoices != null) {
-                for (Invoice i : pa?.OrderPaymentSummary?.OrderSummary?.Invoices) {
-                    invoiceIds.add(i.Id);
-                }
-            }
-
-            // Pull all InvoiceLines.  Send adjustments + charge vs shipping
-            Integer invoiceLineCount = 0;
-            Map<String, Object> additionalData = new Map<String, Object>();
-
-            for (InvoiceLine invoiceLine : [SELECT Id, Product2.Name, Quantity, CurrencyIsoCode, ChargeAmount,
-                                                ChargeTaxAmount, ChargeAmountWithTax, Type
-                                            FROM InvoiceLine
-                                            WHERE Type = 'Charge'
-                                            AND InvoiceId IN :invoiceIds]) {
-
-                Decimal itemAmount = Integer.valueOf(invoiceLine.ChargeAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
-                Decimal itemVatAmount = Integer.valueOf(invoiceLine.ChargeTaxAmount * AdyenPaymentUtility.getAmountMultiplier(pa.CurrencyIsoCode));
-                Decimal itemVatPercentage = invoiceLine.ChargeAmount / invoiceLine.ChargeTaxAmount;
-
-                invoiceLineCount++;
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.currencyCode',          invoiceLine.CurrencyIsoCode);
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.description',           invoiceLine.Product2.Name);
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemAmount',            String.valueOf(itemAmount));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatAmount',         String.valueOf(itemVatAmount));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.itemVatPercentage',     String.valueOf(itemVatPercentage));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.numberOfItems',         String.valueOf(Integer.valueOf(invoiceLine.Quantity)));
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.productUrl',            '');
-                additionalData.put('openinvoicedata.line' + invoiceLineCount + '.imageUrl',              '');
-            }
-            additionalData.put('openinvoicedata.numberOfLines', invoiceLineCount);
-            return additionalData;
     }
 
     /**
