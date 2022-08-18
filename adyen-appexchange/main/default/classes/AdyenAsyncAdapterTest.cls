@@ -228,7 +228,7 @@ global class AdyenAsyncAdapterTest {
             'live' => false,
             'notificationItems' => new List<AdyenService.NotificationItems>{item}
         };
-        AdyenPaymentHelper.TEST_NOTIFICATION_REQUEST_BODY = JSON.serialize(requestBody);
+        AdyenWebhookNotificationHelper.TEST_NOTIFICATION_REQUEST_BODY = JSON.serialize(requestBody);
 
         Test.startTest();
         CommercePayments.GatewayNotificationResponse captureResponse = adyenAdapter.processNotification(null);
