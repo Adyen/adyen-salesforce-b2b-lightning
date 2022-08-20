@@ -1,7 +1,7 @@
 {
-  "orgName": "Test B2B Company",
+  "orgName": "Adyen",
   "edition": "Developer",
-  "features": ["MultiCurrency","Communities", "B2BCommerce", "OrderManagement", "EnableSetPasswordInApi"],
+  "features": ["MultiCurrency","Communities", "B2BCommerce", "EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
@@ -11,9 +11,6 @@
     },
     "communitiesSettings": {
       "enableNetworksEnabled": true
-    },
-    "orderManagementSettings": {
-      "enableOrderManagement": true
     },
     "orderSettings": {
       "enableOrders": true,
