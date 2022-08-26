@@ -4,7 +4,7 @@
     <deprecated>false</deprecated>
     <description>Name of the System Integrator, working with the Merchant on installing and enabling the package</description>
     <externalId>false</externalId>
-    <fieldManageability>DeveloperControlled</fieldManageability>
+    <fieldManageability>SubscriberControlled</fieldManageability>
     <inlineHelpText>Name of the System Integrator, working with the Merchant on installing and enabling the package</inlineHelpText>
     <label>System Integrator Name</label>
     <length>255</length>
