@@ -4,7 +4,7 @@
     <deprecated>false</deprecated>
     <description>Leave blank if org is using mult-currency otherwise enter the currency ISO Code the org is using ie. USD . If null the adapter will look for xxxIsoCode fields in the org. These are placed there when enabling multi-currency</description>
     <externalId>false</externalId>
-    <fieldManageability>DeveloperControlled</fieldManageability>
+    <fieldManageability>SubscriberControlled</fieldManageability>
     <inlineHelpText>Leave blank if org is using mult-currency otherwise enter the currency ISO Code the org is using ie. USD</inlineHelpText>
     <label>Single Currency Code</label>
     <length>4</length>
