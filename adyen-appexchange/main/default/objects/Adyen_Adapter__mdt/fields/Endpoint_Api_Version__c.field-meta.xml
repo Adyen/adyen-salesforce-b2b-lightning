@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Endpoint_Api_Version__c</fullName>
-    <defaultValue>&quot;/v68&quot;</defaultValue>
     <deprecated>false</deprecated>
     <description>The Api Version of the Endpoint.. ie. v52</description>
     <externalId>false</externalId>
