@@ -4,7 +4,7 @@
     <deprecated>false</deprecated>
     <description>The path to be appended to the Endpoint URI Listed in the Named Credential.</description>
     <externalId>false</externalId>
-    <fieldManageability>DeveloperControlled</fieldManageability>
+    <fieldManageability>SubscriberControlled</fieldManageability>
     <inlineHelpText>The path to be appended to the Endpoint URI Listed in the Named Credential.</inlineHelpText>
     <label>Endpoint Path</label>
     <length>255</length>

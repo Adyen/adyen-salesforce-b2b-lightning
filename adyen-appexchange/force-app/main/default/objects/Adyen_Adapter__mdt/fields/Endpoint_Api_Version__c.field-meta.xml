@@ -4,7 +4,7 @@
     <deprecated>false</deprecated>
     <description>The Api Version of the Endpoint.. ie. v52</description>
     <externalId>false</externalId>
-    <fieldManageability>DeveloperControlled</fieldManageability>
+    <fieldManageability>SubscriberControlled</fieldManageability>
     <inlineHelpText>The Api Version of the Endpoint ie. v52</inlineHelpText>
     <label>Endpoint Api Version</label>
     <length>16</length>
