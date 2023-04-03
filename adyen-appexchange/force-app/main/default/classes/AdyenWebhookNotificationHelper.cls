@@ -16,9 +16,7 @@ public with sharing class AdyenWebhookNotificationHelper {
         CommercePayments.GatewayNotificationResponse gatewayNotificationResponse = new CommercePayments.GatewayNotificationResponse();
 
         CommercePayments.NotificationSaveResult notificationSaveResult;
-        AdyenService.NotificationRequestItem notificationRequestItem;
-
-        notificationRequestItem = parseAdyenNotificationRequest( paymentGatewayNotificationRequest );
+        NotificationRequestItem notificationRequestItem = parseAdyenNotificationRequest( paymentGatewayNotificationRequest );
 
         String pspReference = notificationRequestItem.originalReference != null ? notificationRequestItem.originalReference : notificationRequestItem.paymentPspReference;
         String apexAdapterId = AdyenPaymentUtility.retrieveApexAdapterId(pspReference);
@@ -68,16 +66,16 @@ public with sharing class AdyenWebhookNotificationHelper {
      * Take the http request from the async notification callback and deserializes it into AdyenNotificationResponse.
      *
      * @param adyenNotificationRequestPayload   The body of the Adyen notification request.
-     * @return AdyenService.AdyenNotificationRequest         The deserialized version of the Adyen nodification request.
+     * @return AdyenNotificationRequest         The deserialized version of the Adyen nodification request.
      *
      * @see https://docs.adyen.com/development-resources/webhooks/understand-notifications
      */
-    public static AdyenService.NotificationRequestItem parseAdyenNotificationRequest(CommercePayments.PaymentGatewayNotificationRequest notificationRequest) {
+    public static NotificationRequestItem parseAdyenNotificationRequest(CommercePayments.PaymentGatewayNotificationRequest notificationRequest) {
         String requestBody = Test.isRunningTest() ? TEST_NOTIFICATION_REQUEST_BODY : AdyenPaymentUtility.makeSalesforceCompatible(notificationRequest.getRequestBody().toString());
-        AdyenService.AdyenNotification adyenNotification  = (AdyenService.AdyenNotification) JSON.deserialize(requestBody, AdyenService.AdyenNotification.class);
-        AdyenService.NotificationRequestItem notificationRequestItem = new AdyenService.NotificationRequestItem();
+        AdyenNotification adyenNotification  = (AdyenNotification) JSON.deserialize(requestBody, AdyenNotification.class);
+        NotificationRequestItem notificationRequestItem = new NotificationRequestItem();
         if(adyenNotification != null) {
-            for(AdyenService.NotificationItems notificationItem : adyenNotification.notificationItems) {
+            for(NotificationItems notificationItem : adyenNotification.notificationItems) {
                 if(notificationItem.NotificationRequestItem != null) {
                     notificationRequestItem = notificationItem.NotificationRequestItem;
                 }
@@ -93,7 +91,7 @@ public with sharing class AdyenWebhookNotificationHelper {
      * @param adyenNotificationResponse
      * @return CommercePayments.NotificationSaveResult.
      */
-    private static CommercePayments.NotificationSaveResult createNotificationSaveResult( AdyenService.NotificationRequestItem notificationRequestItem ) {
+    private static CommercePayments.NotificationSaveResult createNotificationSaveResult( NotificationRequestItem notificationRequestItem ) {
 
         CommercePayments.BaseNotification notification = null;
         CommercePayments.NotificationStatus notificationStatus = null;

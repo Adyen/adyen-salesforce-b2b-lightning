@@ -212,7 +212,7 @@ global class AdyenAsyncAdapterTest {
     @IsTest
     static void testCapture_Inbound_Success() {
 
-        AdyenService.NotificationRequestItem nri = new AdyenService.NotificationRequestItem();
+        NotificationRequestItem nri = new NotificationRequestItem();
         Amount a = new Amount();
         a.currency_x = 'USD';
         a.value = (Long)Integer.valueOf(TEST_AMOUNT*10);
@@ -222,11 +222,11 @@ global class AdyenAsyncAdapterTest {
         nri.pspReference = TEST_PSP_REFERENCE;
         nri.success = 'true';
         nri.reason = 'TEST';
-        AdyenService.NotificationItems item = new AdyenService.NotificationItems();
+        NotificationItems item = new NotificationItems();
         item.notificationRequestItem = nri;
         Map<String, Object> requestBody = new Map<String, Object>{
             'live' => false,
-            'notificationItems' => new List<AdyenService.NotificationItems>{item}
+            'notificationItems' => new List<NotificationItems>{item}
         };
         AdyenWebhookNotificationHelper.TEST_NOTIFICATION_REQUEST_BODY = JSON.serialize(requestBody);
 
