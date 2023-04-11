@@ -66,7 +66,7 @@ public with sharing class AdyenWebhookNotificationHelper {
      * Take the http request from the async notification callback and deserializes it into AdyenNotificationResponse.
      *
      * @param adyenNotificationRequestPayload   The body of the Adyen notification request.
-     * @return AdyenNotificationRequest         The deserialized version of the Adyen nodification request.
+     * @return AdyenNotificationRequest         The deserialized version of the Adyen notification request.
      *
      * @see https://docs.adyen.com/development-resources/webhooks/understand-notifications
      */
