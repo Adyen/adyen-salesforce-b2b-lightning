@@ -43,5 +43,7 @@ global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentG
         return AdyenWebhookNotificationHelper.handleAsyncNotificationCallback(gatewayNotificationContext, apexName);
     }
 
-    public class GatewayException extends Exception {}
+    public class GatewayException extends Exception {
+
+    }
 }
