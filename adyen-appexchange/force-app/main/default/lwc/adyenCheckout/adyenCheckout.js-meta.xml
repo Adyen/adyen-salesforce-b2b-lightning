@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>57.0</apiVersion>
+    <description>Adyen Checkout</description>
+    <isExposed>true</isExposed>
+    <masterLabel>Adyen Checkout</masterLabel>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property
+                    label="Adyen Adapter Name"
+                    name="adyenAdapter"
+                    type="String"
+                    default="AdyenDefault"
+            />
+            <property
+                    label="Checkout Details"
+                    name="checkoutDetails"
+                    type="Object"
+            />
+            <property
+                    label="Checkout Addresses"
+                    name="checkoutAddresses"
+                    type="Object"
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
