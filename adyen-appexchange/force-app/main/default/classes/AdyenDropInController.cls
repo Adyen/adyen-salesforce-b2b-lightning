@@ -8,6 +8,7 @@ public with sharing class AdyenDropInController {
         Adyen_Adapter__mdt adyenAdapter = AdyenUtils.retrieveAdyenAdapter(adyenAdapterName);
         PaymentMethodsRequest paymentMethodsRequest = new PaymentMethodsRequest();
         paymentMethodsRequest.merchantAccount = adyenAdapter.Merchant_Account__c;
+        paymentMethodsRequest.allowedPaymentMethods = new List<String>{'visa', 'mc', 'amex'};
         String paymentMethodsEndpoint = adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.Payment_Methods_Endpoint__c;
 
         HttpResponse result = AdyenUtils.makePostRequest(paymentMethodsEndpoint, JSON.serialize(paymentMethodsRequest));
@@ -16,7 +17,6 @@ public with sharing class AdyenDropInController {
             throw new AuraHandledException('API returned: ' + result.getBody());
         } else {
             PaymentMethodsResponse paymentMethodsResponse = (PaymentMethodsResponse)JSON.deserialize(result.getBody(), PaymentMethodsResponse.class);
-            paymentMethodsResponse.paymentMethods = AdyenUtils.filterOnlyCardPaymentMethod(paymentMethodsResponse.paymentMethods);
             return JSON.serialize(paymentMethodsResponse);
         }
     }
