@@ -1,0 +1,14 @@
+<!--
+ - Created by daniloc on 21/11/2023.
+ -->
+
+<!-- Adyen Checkout -->
+<template>
+    <template if:true={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+    <div id="dropin-container" style="width: 600px;"></div>
+    <template if:true={error}>
+        <c-error-panel errors={error}></c-error-panel>
+    </template>
+</template>
