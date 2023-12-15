@@ -31,7 +31,7 @@ private class AdyenB2BUtilsTest {
         String body = '{}';
         try { // when
             Test.startTest();
-            HttpResponse response = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payment_Methods_Endpoint__c', body);
+            AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payment_Methods_Endpoint__c', body);
             Test.stopTest();
             Assert.fail();
         } catch (Exception ex) { // then

@@ -2,16 +2,6 @@
 public without sharing class TestDataFactory {
     public static final String ACTIVE_CURRENCY = [SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE LIMIT 1].IsoCode;
 
-    public static List<PaymentMethod> getMultiplePaymentMethods() {
-        PaymentMethod idealPaymentMethod = PaymentMethod.getExample();
-        idealPaymentMethod.type = 'ideal';
-        PaymentMethod paypalPaymentMethod = PaymentMethod.getExample();
-        paypalPaymentMethod.type = 'paypal';
-        PaymentMethod cardPaymentMethod = PaymentMethod.getExample();
-        cardPaymentMethod.type = AdyenConstants.CARD_PAYMENT_METHOD_TYPE;
-        return new List<PaymentMethod>{cardPaymentMethod, idealPaymentMethod, paypalPaymentMethod};
-    }
-
     public static WebStore setUpWebStore(Decimal unitPrice, String currencyIsoCode) {
         WebStore testWebStore = new WebStore(Name = 'TestWebStore', DefaultLanguage = 'en_US');
         insert testWebStore;

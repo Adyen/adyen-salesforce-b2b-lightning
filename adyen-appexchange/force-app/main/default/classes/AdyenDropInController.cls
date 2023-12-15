@@ -141,7 +141,6 @@ public with sharing class AdyenDropInController {
         public String cardBin;
         public String lastFourDigits;
         public String cardType;
-        public String cardNumber;
         public String holderName;
 
         public String fakeFullCardNumber() {
