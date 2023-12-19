@@ -30,7 +30,7 @@ public with sharing class AdyenDropInController {
                 paymentsResp.additionalData.get('paymentMethodVariant'),
                 ((CardDetails)paymentMethodDetails).holderName
             );
-            ConnectApi.PostAuthorizationResponse postAuthorizationResponse = callPostAuthorize(requiredCardDetails, cart);
+            ConnectApi.PostAuthorizationResponse postAuthorizationResponse = callPostAuthorize(requiredCardDetails, cart, paymentsResp.pspReference);
             if (postAuthorizationResponse.gatewayResponse.gatewayResultCode.equalsIgnoreCase('success')) {
                 updateCartWithPaymentMethod(postAuthorizationResponse, cart);
                 return true;
@@ -82,7 +82,7 @@ public with sharing class AdyenDropInController {
         return paymentsRequest;
     }
 
-    private static ConnectApi.PostAuthorizationResponse callPostAuthorize(RequiredCardDetails requiredCardDetails, WebCart webCart) {
+    private static ConnectApi.PostAuthorizationResponse callPostAuthorize(RequiredCardDetails requiredCardDetails, WebCart webCart, String pspReference) {
         ConnectApi.PostAuthRequest postAuthRequest = new ConnectApi.PostAuthRequest();
         postAuthRequest.accountId = webCart.AccountId;
         postAuthRequest.amount = webCart.GrandTotalAmount;
@@ -94,6 +94,7 @@ public with sharing class AdyenDropInController {
         postAuthRequest.paymentGroup = new ConnectApi.PaymentGroupRequest();
         postAuthRequest.paymentGroup.createPaymentGroup = true;
         postAuthRequest.paymentGroup.currencyIsoCode = webCart.CurrencyIsoCode;
+        postAuthRequest.comments = pspReference;
         ConnectApi.PostAuthorizationResponse postAuthorizationResponse = Test.isRunningTest() ? mockPostAuthResponse() : ConnectApi.Payments.postAuth(postAuthRequest);
         return postAuthorizationResponse;
     }
