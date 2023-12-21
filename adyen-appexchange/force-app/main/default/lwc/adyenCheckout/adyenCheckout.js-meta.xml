@@ -17,6 +17,12 @@
                     default="AdyenDefault"
             />
             <property
+                    label="Environment"
+                    name="environment"
+                    type="String"
+                    default="test"
+            />
+            <property
                     label="Checkout Details"
                     name="checkoutDetails"
                     type="Object"

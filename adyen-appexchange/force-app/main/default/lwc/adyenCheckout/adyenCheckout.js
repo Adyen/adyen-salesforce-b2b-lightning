@@ -16,11 +16,12 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class AdyenCheckoutComponent extends useCheckoutComponent(NavigationMixin(LightningElement)) {
     static renderMode = 'light';
-    loading = true;
-    error = false;
+    @api adyenAdapter
+    @api environment;
     @api checkoutDetails;
     @api checkoutAddresses;
-    @api adyenAdapter
+    loading = true;
+    error = false;
     paymentMethods;
     clientKey;
     orderReferenceNumber;
@@ -84,7 +85,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             paymentMethodsResponse: paymentMethods,
             clientKey: this.clientKey,
             locale: userLocale,
-            environment: "test",
+            environment: this.environment,
             onSubmit: async (state, dropin) => {
                 try {
                     this.loading = true;

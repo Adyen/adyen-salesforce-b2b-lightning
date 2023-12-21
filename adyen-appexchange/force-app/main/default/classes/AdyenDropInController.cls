@@ -5,7 +5,7 @@ public with sharing class AdyenDropInController {
         PaymentMethodsRequest paymentMethodsRequest = new PaymentMethodsRequest();
         paymentMethodsRequest.merchantAccount = adyenAdapter.Merchant_Account__c;
         paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE};
-        paymentMethodsRequest.blockedPaymentMethods = new List<String>{'bcmc', 'bcmc_mobile'};
+        paymentMethodsRequest.blockedPaymentMethods = new List<String>{AdyenB2BConstants.BANCONTACT_CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE};
         HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payment_Methods_Endpoint__c', JSON.serialize(paymentMethodsRequest));
         PaymentMethodsAndClientKey paymentMethodsAndClientKey = new PaymentMethodsAndClientKey(result.getBody(), adyenAdapter.Client_Key__c);
         return paymentMethodsAndClientKey;
@@ -77,6 +77,8 @@ public with sharing class AdyenDropInController {
         paymentsRequest.amount = requestAmount;
         paymentsRequest.reference = cart.Id;
         paymentsRequest.shopperReference = cart.OwnerId;
+        paymentsRequest.shopperEmail = UserInfo.getUserEmail();
+        paymentsRequest.shopperIP = Test.isRunningTest() ? null : Auth.SessionManagement.getCurrentSession().get('SourceIp');
         paymentsRequest.returnUrl = Url.getOrgDomainUrl().toExternalForm();
         paymentsRequest.applicationInfo = AdyenB2BUtils.getApplicationInfo(adyenAdapter.System_Integrator_Name__c);
         return paymentsRequest;
