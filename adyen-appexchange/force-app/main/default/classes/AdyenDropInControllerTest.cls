@@ -45,94 +45,60 @@ private class AdyenDropInControllerTest {
         }
     }
 
-
     @IsTest(SeeAllData=true)
     private static void makePaymentTest() {
-        //given
+        // given
+        ClientDetails clientDetails = TestDataFactory.createClientDetails();
         Decimal unitPrice = 10.99;
+        Decimal quantity = 1;
         String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
-        Decimal quantity = 2.0;
         WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
         User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
-        String paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
-        String paymentMethodBody = TestDataFactory.getPaymentMethodBody(paymentMethodType, 'Tester');
-        String adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
-        String endDigits = '1234';
+
         Test.setMock(HttpCalloutMock.class, new TestDataFactory.PaymentsSuccessMock());
         // when
-        Boolean makePaymentResult;
+        String makePaymentResult;
         System.runAs(buyerUser) {
             WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, quantity);
             webCart.Status = 'Checkout';
             update webCart;
             Test.startTest();
-            makePaymentResult = AdyenDropInController.makePayment(paymentMethodType, paymentMethodBody, adyenAdapterName, endDigits);
+            makePaymentResult = AdyenDropInController.makePayment(clientDetails);
             Test.stopTest();
         }
         // then
-        Assert.isTrue(makePaymentResult);
+        Assert.isNotNull(makePaymentResult);
+        PaymentsResponse paymentsResp = (PaymentsResponse)JSON.deserialize(makePaymentResult, PaymentsResponse.class);
+        Assert.isNotNull(paymentsResp.pspReference);
+        Assert.isNull(paymentsResp.refusalReason);
+        Assert.areEqual(PaymentsResponse.ResultCodeEnum.AUTHORISED, paymentsResp.resultCode);
     }
 
     @IsTest(SeeAllData=true)
     private static void makePaymentErrorTest() {
-        //given
+        // given
+        ClientDetails clientDetails = TestDataFactory.createClientDetails();
         Decimal unitPrice = 10.99;
+        Decimal quantity = 1;
         String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
-        Decimal quantity = 2.0;
         WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
         User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
-        String paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
-        String paymentMethodBody = TestDataFactory.getPaymentMethodBody(paymentMethodType, 'Tester');
-        String adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
-        String endDigits = '1234';
+
         Test.setMock(HttpCalloutMock.class, new TestDataFactory.GenericErrorMock());
         // when
-        Boolean makePaymentResult;
+        String makePaymentResult;
         System.runAs(buyerUser) {
             WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, quantity);
             webCart.Status = 'Checkout';
             update webCart;
             try {
                 Test.startTest();
-                makePaymentResult = AdyenDropInController.makePayment(paymentMethodType, paymentMethodBody, adyenAdapterName, endDigits);
+                makePaymentResult = AdyenDropInController.makePayment(clientDetails);
                 Test.stopTest();
                 Assert.fail();
-            } catch (Exception ex) { // then
+            } catch (Exception ex) {
                 Assert.isInstanceOfType(ex, AuraHandledException.class);
             }
-        }
-    }
-
-    @IsTest
-    private static void deserializePaymentMethodTest() {
-        // given - scheme type
-        String paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
-        String paymentMethodBody = TestDataFactory.getPaymentMethodBody(paymentMethodType, 'Tester');
-        // when
-        PaymentMethodDetails paymentMethodDetails = AdyenDropInController.deserializePaymentMethod(paymentMethodType, paymentMethodBody);
-        // then
-        Assert.isInstanceOfType(paymentMethodDetails, CardDetails.class);
-        CardDetails cardDetails = (CardDetails)paymentMethodDetails;
-        Assert.areEqual('Tester', cardDetails.holderName);
-
-        // given - unsupported payment method
-        paymentMethodType = 'boleto';
-        paymentMethodBody = TestDataFactory.getPaymentMethodBody(paymentMethodType, 'Tester');
-        try { // when
-            paymentMethodDetails = AdyenDropInController.deserializePaymentMethod(paymentMethodType, paymentMethodBody);
-            Assert.fail();
-        } catch (Exception ex) { // then
-            Assert.isInstanceOfType(ex, AuraHandledException.class);
-        }
-
-        // given - weird body
-        paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
-        paymentMethodBody = 'Attribute: "value"';
-        try { // when
-            paymentMethodDetails = AdyenDropInController.deserializePaymentMethod(paymentMethodType, paymentMethodBody);
-            Assert.fail();
-        } catch (Exception ex) { // then
-            Assert.isInstanceOfType(ex, AuraHandledException.class);
         }
     }
 
@@ -140,7 +106,7 @@ private class AdyenDropInControllerTest {
     private static void buildPaymentsRequestTest() {
         // given
         Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
-        PaymentMethodDetails paymentMethodDetails = null; // tested on deserializePaymentMethodTest
+        ClientDetails clientDetails = TestDataFactory.createClientDetails();
         Decimal unitPrice = 10.99;
         Decimal quantity = 1;
         String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
@@ -148,7 +114,7 @@ private class AdyenDropInControllerTest {
         WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, quantity);
         // when
         Test.startTest();
-        PaymentsRequest paymentsRequest = AdyenDropInController.buildPaymentsRequest(paymentMethodDetails, webCart, adyenAdapter);
+        PaymentsRequest paymentsRequest = AdyenDropInController.buildPaymentsRequest(clientDetails, webCart, adyenAdapter);
         Test.stopTest();
         // then
         Assert.areEqual(adyenAdapter.Merchant_Account__c, paymentsRequest.merchantAccount);
@@ -156,6 +122,50 @@ private class AdyenDropInControllerTest {
         Assert.areEqual(webCart.OwnerId, paymentsRequest.shopperReference);
         Assert.areEqual(webCart.CurrencyIsoCode, paymentsRequest.amount.currency_x);
         Long expectedValue = (webCart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(webCart.CurrencyIsoCode)).longValue();
+        Assert.isTrue(paymentsRequest.returnUrl.contains('/checkout'));
         Assert.areEqual(expectedValue, paymentsRequest.amount.value);
+        Assert.areEqual('NL', paymentsRequest.billingAddress.country);
+        Assert.areEqual('Rotterdam', paymentsRequest.billingAddress.city);
+        Assert.areEqual('3012 AH', paymentsRequest.billingAddress.postalCode);
+        Assert.areEqual('en-US', paymentsRequest.browserInfo.language);
+        Assert.areEqual('*/*', paymentsRequest.browserInfo.acceptHeader);
+        Assert.areEqual('Web', paymentsRequest.channel);
+        Assert.areEqual(Url.getOrgDomainUrl().toExternalForm(), paymentsRequest.origin);
+    }
+
+    @IsTest(SeeAllData=true)
+    private static void makeDetailsCallTest() {
+        // given
+        Object stateData = TestDataFactory.getStateData();
+        String adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
+        TestDataFactory.PaymentsSuccessMock paymentsSuccessMock = new TestDataFactory.PaymentsSuccessMock();
+        Decimal unitPrice = 10.99;
+        Decimal quantity = 1;
+        String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
+        WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
+        User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
+        String makeDetailsCallResult;
+        PaymentAuthorization paymentAuthorization;
+        System.runAs(buyerUser) {
+            WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, quantity);
+            paymentsSuccessMock.cartId = webCart.Id;
+            Test.setMock(HttpCalloutMock.class, paymentsSuccessMock);
+            webCart.Status = 'Checkout';
+            CardPaymentMethod cardPaymentMethod = new CardPaymentMethod(Status = 'Active', ProcessingMode = 'External');
+            insert cardPaymentMethod;
+            webCart.PaymentMethodId = cardPaymentMethod.Id;
+            update webCart;
+            paymentAuthorization = new PaymentAuthorization(Amount = unitPrice, ProcessingMode = 'External', Status = 'Pending', PaymentMethodId = cardPaymentMethod.Id);
+            insert paymentAuthorization;
+            // when
+            Test.startTest();
+            makeDetailsCallResult = AdyenDropInController.makeDetailsCall(stateData, adyenAdapterName);
+            Test.stopTest();
+        }
+        // then
+        Assert.isNotNull(makeDetailsCallResult);
+        PaymentsResponse paymentsResp = (PaymentsResponse)JSON.deserialize(makeDetailsCallResult, PaymentsResponse.class);
+        String pspReference = [SELECT GatewayRefNumber FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id].GatewayRefNumber;
+        Assert.areEqual(paymentsResp.pspReference, pspReference);
     }
 }

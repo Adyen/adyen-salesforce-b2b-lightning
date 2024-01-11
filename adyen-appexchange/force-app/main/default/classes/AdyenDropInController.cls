@@ -12,44 +12,39 @@ public with sharing class AdyenDropInController {
     }
 
     @AuraEnabled
-    public static Boolean makePayment(String paymentMethodType, String paymentMethod, String adyenAdapterName, String endDigits) {
+    public static String makePayment(ClientDetails clientDetails) {
         WebCart cart = fetchCartDetails();
-        PaymentMethodDetails paymentMethodDetails = deserializePaymentMethod(paymentMethodType, paymentMethod);
-        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
-        PaymentsRequest paymentsRequest = buildPaymentsRequest(paymentMethodDetails, cart, adyenAdapter);
+        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(clientDetails.adyenAdapterName);
+        PaymentsRequest paymentsRequest = buildPaymentsRequest(clientDetails, cart, adyenAdapter);
 
         HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payments_Endpoint__c', JSON.serialize(paymentsRequest));
         PaymentsResponse paymentsResp = (PaymentsResponse)JSON.deserialize(result.getBody(), PaymentsResponse.class);
-        if (paymentsResp.resultCode != PaymentsResponse.ResultCodeEnum.AUTHORISED) {
-            return false;
-        } else {
-            RequiredCardDetails requiredCardDetails = new RequiredCardDetails(
-                cart.AccountId,
-                paymentsResp.additionalData.get('cardBin'),
-                endDigits,
-                paymentsResp.additionalData.get('paymentMethodVariant'),
-                ((CardDetails)paymentMethodDetails).holderName
-            );
-            ConnectApi.PostAuthorizationResponse postAuthorizationResponse = callPostAuthorize(requiredCardDetails, cart, paymentsResp.pspReference);
+        persistPaymentDetails(cart, paymentsResp, clientDetails);
+
+        return JSON.serialize(paymentsResp);
+    }
+
+    private static void persistPaymentDetails(WebCart cart, PaymentsResponse paymentsResp, ClientDetails clientDetails) {
+        if (String.isBlank(paymentsResp.refusalReason)) {
+            ConnectApi.PostAuthorizationResponse postAuthorizationResponse = callPostAuthorize(clientDetails.cardData, cart, paymentsResp);
             if (postAuthorizationResponse.gatewayResponse.gatewayResultCode.equalsIgnoreCase('success')) {
-                updateCartWithPaymentMethod(postAuthorizationResponse, cart);
-                return true;
+                updateCartDetails(postAuthorizationResponse, cart, clientDetails.getCompatibleBillingAddress());
+            } else {
+                throw new AuraHandledException('Could not update cart with payment! Error: ' + JSON.serialize(postAuthorizationResponse.gatewayResponse));
             }
-            return false;
         }
     }
 
-    @TestVisible
-    private static PaymentMethodDetails deserializePaymentMethod(String paymentMethodType, String paymentMethod) {
-        try {
-            if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
-                return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
-            } else {
-                throw new AuraHandledException('Unhandled payment method of type: ' + paymentMethodType);
-            }
-        } catch (Exception ex) {
-            throw new AuraHandledException('Error deserializing payment method: ' + ex.getMessage());
+    @AuraEnabled
+    public static String makeDetailsCall(Object stateData, String adyenAdapterName) {
+        System.debug(JSON.serialize(stateData));
+        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
+        HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payments_Details_Endpoint__c', JSON.serialize(stateData));
+        PaymentsResponse paymentsResp = (PaymentsResponse)JSON.deserialize(result.getBody(), PaymentsResponse.class);
+        if (paymentsResp.resultCode == PaymentsResponse.ResultCodeEnum.AUTHORISED) {
+            persistPspReference(paymentsResp.merchantReference, paymentsResp.pspReference);
         }
+        return JSON.serialize(paymentsResp);
     }
 
     private static WebCart fetchCartDetails() {
@@ -66,25 +61,28 @@ public with sharing class AdyenDropInController {
     }
 
     @TestVisible
-    private static PaymentsRequest buildPaymentsRequest(PaymentMethodDetails paymentMethodDetails, WebCart cart, Adyen_Adapter__mdt adyenAdapter) {
+    private static PaymentsRequest buildPaymentsRequest(ClientDetails clientDetails, WebCart cart, Adyen_Adapter__mdt adyenAdapter) {
         Amount requestAmount = new Amount();
         requestAmount.value = (cart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(cart.CurrencyIsoCode)).longValue();
         requestAmount.currency_x = cart.CurrencyIsoCode;
 
         PaymentsRequest paymentsRequest = new PaymentsRequest();
-        paymentsRequest.paymentMethod = paymentMethodDetails;
+        paymentsRequest.paymentMethod = clientDetails.getPaymentMethodDetails();
         paymentsRequest.merchantAccount = adyenAdapter.Merchant_Account__c;
         paymentsRequest.amount = requestAmount;
         paymentsRequest.reference = cart.Id;
         paymentsRequest.shopperReference = cart.OwnerId;
         paymentsRequest.shopperEmail = UserInfo.getUserEmail();
-        paymentsRequest.shopperIP = Test.isRunningTest() ? null : Auth.SessionManagement.getCurrentSession().get('SourceIp');
-        paymentsRequest.returnUrl = Url.getOrgDomainUrl().toExternalForm();
+        paymentsRequest.returnUrl = AdyenB2BUtils.getSiteCheckoutUrl(clientDetails.urlPath);
+        paymentsRequest.billingAddress = clientDetails.getCompatibleBillingAddress();
+        paymentsRequest.browserInfo = clientDetails.getBrowserInfo();
         paymentsRequest.applicationInfo = AdyenB2BUtils.getApplicationInfo(adyenAdapter.System_Integrator_Name__c);
+        paymentsRequest.channel = 'Web';
+        paymentsRequest.origin = Url.getOrgDomainUrl().toExternalForm();
         return paymentsRequest;
     }
 
-    private static ConnectApi.PostAuthorizationResponse callPostAuthorize(RequiredCardDetails requiredCardDetails, WebCart webCart, String pspReference) {
+    private static ConnectApi.PostAuthorizationResponse callPostAuthorize(ClientDetails.CardData cardData, WebCart webCart, PaymentsResponse paymentsResp) {
         ConnectApi.PostAuthRequest postAuthRequest = new ConnectApi.PostAuthRequest();
         postAuthRequest.accountId = webCart.AccountId;
         postAuthRequest.amount = webCart.GrandTotalAmount;
@@ -92,11 +90,17 @@ public with sharing class AdyenDropInController {
         postAuthRequest.effectiveDate = System.now();
         postAuthRequest.paymentGatewayId = AdyenB2BUtils.fetchAdyenGatewayId();
         postAuthRequest.paymentMethod = new ConnectApi.PostAuthApiPaymentMethodRequest();
-        postAuthRequest.paymentMethod.cardPaymentMethod = createCardPayMethodRequest(requiredCardDetails);
+        postAuthRequest.paymentMethod.cardPaymentMethod = createCardPayMethodRequest(cardData);
+        postAuthRequest.paymentMethod.cardPaymentMethod.accountId = webCart.AccountId;
         postAuthRequest.paymentGroup = new ConnectApi.PaymentGroupRequest();
         postAuthRequest.paymentGroup.createPaymentGroup = true;
         postAuthRequest.paymentGroup.currencyIsoCode = webCart.CurrencyIsoCode;
-        postAuthRequest.comments = pspReference;
+
+        Map<String,String> additionalData = new Map<String,String>();
+        additionalData.put('pspReference', paymentsResp.pspReference);
+        additionalData.put('isAsync', String.valueOf(paymentsResp.resultCode != PaymentsResponse.ResultCodeEnum.AUTHORISED));
+        postAuthRequest.additionalData = additionalData;
+
         ConnectApi.PostAuthorizationResponse postAuthorizationResponse = Test.isRunningTest() ? mockPostAuthResponse() : ConnectApi.Payments.postAuth(postAuthRequest);
         return postAuthorizationResponse;
     }
@@ -111,19 +115,29 @@ public with sharing class AdyenDropInController {
         return postAuthorizationResponse;
     }
 
-    private static ConnectApi.CardPaymentMethodRequest createCardPayMethodRequest(RequiredCardDetails requiredCardDetails) {
+    private static ConnectApi.CardPaymentMethodRequest createCardPayMethodRequest(ClientDetails.CardData cardData) {
         ConnectApi.CardPaymentMethodRequest cardPaymentMethodRequest = new ConnectApi.CardPaymentMethodRequest();
-        cardPaymentMethodRequest.accountId = requiredCardDetails.accountId;
-        cardPaymentMethodRequest.cardHolderName = requiredCardDetails.holderName;
-        cardPaymentMethodRequest.cardType = AdyenB2BUtils.makeSalesforceCompatible(requiredCardDetails.cardType);
-        cardPaymentMethodRequest.cardNumber = requiredCardDetails.fakeFullCardNumber();
+        cardPaymentMethodRequest.cardHolderName = cardData.holderName;
+        cardPaymentMethodRequest.cardType = cardData.getBrandSFCompatible();
+        cardPaymentMethodRequest.cardNumber = cardData.fakeFullCardNumber();
         return cardPaymentMethodRequest;
     }
 
-    private static void updateCartWithPaymentMethod(ConnectApi.PostAuthorizationResponse postAuthorizationResponse, WebCart webCart) {
+    private static void updateCartDetails(ConnectApi.PostAuthorizationResponse postAuthorizationResponse, WebCart webCart, Address billingAddress) {
         webCart.PaymentGroupId = postAuthorizationResponse.paymentGroup.id;
         webCart.PaymentMethodId = postAuthorizationResponse.paymentMethod.id;
+        webCart.BillingCity = billingAddress.city;
+        webCart.BillingCountry = billingAddress.country;
+        webCart.BillingPostalCode = billingAddress.postalCode;
+        webCart.BillingStreet = billingAddress.street;
         update webCart;
+    }
+
+    private static void persistPspReference(Id cartId, String pspReference) {
+        Id paymentMethodId = [SELECT PaymentMethodId FROM WebCart WHERE Id = :cartId].PaymentMethodId;
+        PaymentAuthorization paymentAuthorization = [SELECT GatewayRefNumber FROM PaymentAuthorization WHERE PaymentMethodId = :paymentMethodId];
+        paymentAuthorization.GatewayRefNumber = pspReference;
+        update paymentAuthorization;
     }
 
 
@@ -136,26 +150,6 @@ public with sharing class AdyenDropInController {
         PaymentMethodsAndClientKey(String paymentMethodsResponse, String clientKey) {
             this.paymentMethodsResponse = paymentMethodsResponse;
             this.clientKey = clientKey;
-        }
-    }
-
-    private class RequiredCardDetails {
-        public String accountId;
-        public String cardBin;
-        public String lastFourDigits;
-        public String cardType;
-        public String holderName;
-
-        public String fakeFullCardNumber() {
-            return cardBin + '000000' + lastFourDigits;
-        }
-
-        public RequiredCardDetails(Id accountId, String cardBin, String lastFour, String cardType, String holderName) {
-            this.accountId = accountId;
-            this.cardBin = cardBin;
-            this.lastFourDigits = lastFour;
-            this.cardType = cardType;
-            this.holderName = holderName;
         }
     }
 }

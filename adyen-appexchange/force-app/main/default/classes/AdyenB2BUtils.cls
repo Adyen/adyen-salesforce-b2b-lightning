@@ -2,7 +2,8 @@ public with sharing class AdyenB2BUtils {
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
         try {
             return [
-                SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c, Payments_Endpoint__c, System_Integrator_Name__c
+                SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
+                    Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c
                 FROM Adyen_Adapter__mdt
                 WHERE DeveloperName = :adyenAdapterName
                 WITH SECURITY_ENFORCED
@@ -10,6 +11,16 @@ public with sharing class AdyenB2BUtils {
         } catch (Exception ex) {
             throw new AuraHandledException('Could not find adyen adapter with name: ' + adyenAdapterName + '. Error: ' + ex.getMessage());
         }
+    }
+
+    public static String getSiteCheckoutUrl(String urlPath) {
+        Id networkId = Network.getNetworkId();
+        if (!Test.isRunningTest() && networkId == null ) {
+            throw new AuraHandledException('Could not get site URL');
+        }
+        String networkLoginUrl = Test.isRunningTest() ? Url.getOrgDomainUrl().toExternalForm() + '/login' : Network.getLoginUrl(networkId);
+        String networkCheckoutUrl = networkLoginUrl.replace('/login', urlPath);
+        return networkCheckoutUrl;
     }
 
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
@@ -51,11 +62,6 @@ public with sharing class AdyenB2BUtils {
 
     public static Id fetchAdyenGatewayId() {
         return [SELECT Id FROM PaymentGateway WHERE PaymentGatewayName = :AdyenB2BConstants.DEFAULT_PAYMENT_GATEWAY_NAME].Id;
-    }
-
-    public static String makeSalesforceCompatible(String adyenPaymentMethodType) {
-        String salesForcePayMethodType = AdyenB2BConstants.ADYEN_PAYMENT_TYPE_TO_SF_TYPE.get(adyenPaymentMethodType);
-        return String.isNotBlank(salesForcePayMethodType) ? salesForcePayMethodType : adyenPaymentMethodType;
     }
 
     public static ApplicationInfo getApplicationInfo(String systemIntegratorName) {

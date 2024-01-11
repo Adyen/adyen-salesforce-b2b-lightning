@@ -1,43 +1,50 @@
-/**
- * Created by daniloc on 21/11/2023.
- */
-
-import {api, LightningElement} from 'lwc';
+import {api, wire, LightningElement} from 'lwc';
 import adyenCheckoutCSS from '@salesforce/resourceUrl/AdyenCheckoutCSS';
 import adyenCheckoutJS from '@salesforce/resourceUrl/AdyenCheckoutJS';
 import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPaymentMethods';
 import makePayment from '@salesforce/apex/AdyenDropInController.makePayment';
-// import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsCall';
+import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsCall';
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
-import { NavigationMixin } from 'lightning/navigation';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class AdyenCheckoutComponent extends useCheckoutComponent(NavigationMixin(LightningElement)) {
     static renderMode = 'light';
     @api adyenAdapter
-    @api environment;
+    @api adyenEnvironment;
     @api checkoutDetails;
-    @api checkoutAddresses;
+    @api urlPath
     loading = true;
     error = false;
+    detailsSubmitted = false;
     paymentMethods;
     clientKey;
     orderReferenceNumber;
-    cardEndDigits;
+    cardData = { holderName: '', brand: '', bin: '', lastFourDigits: ''};
+
+    @wire(CurrentPageReference)
+    async getStateParameters(currentPageReference) {
+        if (currentPageReference) {
+            const redirectResult = currentPageReference.state?.redirectResult;
+            if (redirectResult && !this.detailsSubmitted) {
+                this.detailsSubmitted = true;
+                const checkout = await this.getAdyenCheckout();
+                checkout.submitDetails({data: {details: {redirectResult}}});
+            }
+        }
+    }
 
     connectedCallback() {
         this.loading = true;
-        this.fetchAdyenPaymentMethods();
+        this.constructAdyenCheckout();
     }
 
-    async fetchAdyenPaymentMethods() {
+    async constructAdyenCheckout() {
         try {
-            const paymentInfo = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
-            this.handlePaymentInfo(paymentInfo);
-            await this.loadAdyenScripts();
-            await this.mountAdyenDropIn();
+            const checkout = await this.getAdyenCheckout();
+            checkout.create('dropin').mount('#dropin-container');
         } catch (error) {
             this.handleError(error);
         } finally {
@@ -45,7 +52,8 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
 
-    handlePaymentInfo(paymentInfo) {
+    async handlePaymentInfo() {
+        const paymentInfo = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
         this.paymentMethods = JSON.parse(paymentInfo.paymentMethodsResponse);
         this.clientKey = paymentInfo.clientKey;
     }
@@ -57,9 +65,12 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         ]);
     }
 
-    async mountAdyenDropIn() {
-        const checkout = await AdyenCheckout(this.createConfigObject(this.paymentMethods));
-        const dropin = checkout.create('dropin').mount('#dropin-container');
+    async getAdyenCheckout() {
+        await Promise.all([
+            this.loadAdyenScripts(),
+            this.handlePaymentInfo()
+        ]);
+        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
     }
 
     handleError(error) {
@@ -67,35 +78,46 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         this.error = error;
     }
 
-    showConfirmationPage(placeOrderResult) {
-        const orderPageRef = {
-            type: 'comm__namedPage',
-            attributes: {
-                name: 'Order'
-            }
-        };
-        orderPageRef.state = {
-            orderNumber: placeOrderResult.orderReferenceNumber
-        };
-        this[NavigationMixin.Navigate](orderPageRef);
-    }
-
     createConfigObject(paymentMethods) {
         return {
             paymentMethodsResponse: paymentMethods,
             clientKey: this.clientKey,
             locale: userLocale,
-            environment: this.environment,
+            environment: this.adyenEnvironment,
             onSubmit: async (state, dropin) => {
                 try {
                     this.loading = true;
-                    const paymentResponse = await makePayment({
+                    const clientData = {
                         paymentMethodType: state.data.paymentMethod.type,
                         paymentMethod: JSON.stringify(state.data.paymentMethod),
                         adyenAdapterName: this.adyenAdapter,
-                        endDigits: this.cardEndDigits
-                    });
-                    if (paymentResponse) {
+                        browserInfo: JSON.stringify(state.data.browserInfo),
+                        billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
+                        cardData: this.cardData,
+                        urlPath: this.urlPath
+                    }
+                    const paymentResponse = JSON.parse(await makePayment({clientDetails: clientData}));
+                    if (paymentResponse.action) {
+                        dropin.handleAction(paymentResponse.action);
+                    } else if (paymentResponse.resultCode === 'AUTHORISED') {
+                        const placeOrderResult = await this.dispatchPlaceOrderAsync();
+                        this.showConfirmationPage(placeOrderResult);
+                    } else {
+                        this.showToast('Not authorized', 'Payment was not authorized, try again', 'error');
+                    }
+                } catch (error) {
+                    this.handleError(error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            onAdditionalDetails: async (state, dropin) => {
+                try {
+                    this.loading = true;
+                    const response = JSON.parse(await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter}));
+                    if (response.action) {
+                        dropin.handleAction(response.action);
+                    } else if (response.resultCode === 'AUTHORISED') {
                         const placeOrderResult = await this.dispatchPlaceOrderAsync();
                         this.showConfirmationPage(placeOrderResult);
                     } else {
@@ -113,11 +135,32 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                     holderNameRequired: true,
                     hideCVC: false,
                     onFieldValid: (data) => {
-                        this.cardEndDigits =  data.endDigits ? data.endDigits : this.cardEndDigits;
+                        this.cardData.lastFourDigits =  data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
+                        this.cardData.bin =  data.issuerBin ? data.issuerBin : this.cardData.bin;
                     },
+                    onChange: (data) => {
+                        const paymentMethod = data.data?.paymentMethod;
+                        if (paymentMethod) {
+                            this.cardData.holderName = paymentMethod.holderName ? paymentMethod.holderName : this.cardData.holderName;
+                            this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
+                        }
+                    }
                 }
             }
         };
+    }
+
+    showConfirmationPage(placeOrderResult) {
+        const orderPageRef = {
+            type: 'comm__namedPage',
+            attributes: {
+                name: 'Order'
+            }
+        };
+        orderPageRef.state = {
+            orderNumber: placeOrderResult.orderReferenceNumber
+        };
+        this[NavigationMixin.Navigate](orderPageRef);
     }
 
     showToast(title, message, variant) {
