@@ -37,7 +37,6 @@ public with sharing class AdyenDropInController {
 
     @AuraEnabled
     public static String makeDetailsCall(Object stateData, String adyenAdapterName) {
-        System.debug(JSON.serialize(stateData));
         Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
         HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payments_Details_Endpoint__c', JSON.serialize(stateData));
         PaymentsResponse paymentsResp = (PaymentsResponse)JSON.deserialize(result.getBody(), PaymentsResponse.class);
