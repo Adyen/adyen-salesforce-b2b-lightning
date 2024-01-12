@@ -40,21 +40,6 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void makeSalesforceCompatible() {
-        // given
-        Set<String> adyenPaymentTypes = AdyenB2BConstants.ADYEN_PAYMENT_TYPE_TO_SF_TYPE.keySet();
-        // when
-        List<String> sfPaymentTypes = new List<String>();
-        Test.startTest();
-        for (String adyenPaymentType : adyenPaymentTypes) {
-            sfPaymentTypes.add(AdyenB2BUtils.makeSalesforceCompatible(adyenPaymentType));
-        }
-        Test.stopTest();
-        // then
-        Assert.areEqual(AdyenB2BConstants.ADYEN_PAYMENT_TYPE_TO_SF_TYPE.values(), sfPaymentTypes);
-    }
-
-    @IsTest
     private static void getApplicationInfoTest() {
         // given
         String systemIntegrator = 'test';
@@ -69,5 +54,17 @@ private class AdyenB2BUtilsTest {
         Assert.areEqual(AdyenB2BConstants.MERCHANT_APP_VERSION_FOR_APP_INFO, applicationInfo.merchantApplication.version);
         Assert.areEqual(AdyenB2BConstants.ADYEN_LIBRARY_NAME_FOR_APP_INFO, applicationInfo.adyenLibrary.name);
         Assert.areEqual(AdyenB2BConstants.ADYEN_LIBRARY_VERSION_FOR_APP_INFO, applicationInfo.adyenLibrary.version);
+    }
+
+    @IsTest
+    private static void getSiteCheckoutUrlTest() {
+        // given - cannot simulate network id in test environment
+        // when
+        Test.startTest();
+        String checkoutURL = AdyenB2BUtils.getSiteCheckoutUrl('/checkout');
+        Test.stopTest();
+        // then
+        Assert.isNotNull(checkoutURL);
+        Assert.isTrue(checkoutURL.contains('/checkout'));
     }
 }

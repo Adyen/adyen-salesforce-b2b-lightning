@@ -17,8 +17,14 @@
                     default="AdyenDefault"
             />
             <property
-                    label="Environment"
-                    name="environment"
+                    label="URL path"
+                    name="urlPath"
+                    type="String"
+                    default="/checkout"
+            />
+            <property
+                    label="Adyen Environment"
+                    name="adyenEnvironment"
                     type="String"
                     default="test"
             />
@@ -26,11 +32,7 @@
                     label="Checkout Details"
                     name="checkoutDetails"
                     type="Object"
-            />
-            <property
-                    label="Checkout Addresses"
-                    name="checkoutAddresses"
-                    type="Object"
+                    default="\{!Checkout.Details\}"
             />
         </targetConfig>
     </targetConfigs>
