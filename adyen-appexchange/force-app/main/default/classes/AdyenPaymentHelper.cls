@@ -124,6 +124,6 @@ public with sharing class AdyenPaymentHelper {
 
     private static String getRandomNumber(Integer stringLength){
         final Integer max = Integer.valueOf(Math.pow(10,stringLength) - 1);
-        return String.valueOf(Math.round(Math.random() * MAX)).leftPad(stringLength,'0');
+        return String.valueOf(Math.round(Math.random() * max)).leftPad(stringLength,'0');
     }
 }
