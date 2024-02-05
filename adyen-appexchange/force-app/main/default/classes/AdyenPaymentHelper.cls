@@ -123,7 +123,7 @@ public with sharing class AdyenPaymentHelper {
     }
 
     private static String getRandomNumber(Integer stringLength){
-        final Integer MAX = Integer.valueOf(Math.pow(10,stringLength) - 1);
+        final Integer max = Integer.valueOf(Math.pow(10,stringLength) - 1);
         return String.valueOf(Math.round(Math.random() * MAX)).leftPad(stringLength,'0');
     }
 }
