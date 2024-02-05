@@ -18,7 +18,7 @@ global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentG
     * The entry point for processing payment requests. Returns the response from the payment gateway.
     * Accepts the gateway context request and handover the operation to AdyenPaymentHelper to call the appropriate capture or refund operation.
     *
-    * @param   paymentGatewayContext
+    * @param   paymentGatewayContext from Salesforce
     * @return  CommercePayments.GatewayResponse
     *
     * @implNotes
@@ -28,14 +28,14 @@ global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentG
     * [REFUND] is called by using the action on the order summary page (left hand side).
     *
     */
-    global CommercePayments.GatewayResponse processRequest(CommercePayments.paymentGatewayContext paymentGatewayContext) {
+    global CommercePayments.GatewayResponse processRequest(CommercePayments.PaymentGatewayContext paymentGatewayContext) {
         return AdyenPaymentHelper.handleFulfillmentOrderStatusChange(paymentGatewayContext);
     }
 
    /**
     *  Listens to the incoming async notification callback from Adyen and handover to AdyenPaymentHelper for processing
     *  
-    * @param gatewayNotificationContext
+    * @param gatewayNotificationContext from Salesforce
     * @return CommercePayments.GatewayNotificationResponse
     */
     public CommercePayments.GatewayNotificationResponse processNotification(CommercePayments.PaymentGatewayNotificationContext gatewayNotificationContext) {

@@ -57,14 +57,14 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void getSiteCheckoutUrlTest() {
+    private static void getSiteUrlTest() {
         // given - cannot simulate network id in test environment
         // when
         Test.startTest();
-        String checkoutURL = AdyenB2BUtils.getSiteCheckoutUrl('/checkout');
+        String checkoutURL = AdyenB2BUtils.getSiteUrl();
         Test.stopTest();
         // then
         Assert.isNotNull(checkoutURL);
-        Assert.isTrue(checkoutURL.contains('/checkout'));
+        Assert.isTrue(checkoutURL.contains('.com'));
     }
 }

@@ -72,12 +72,17 @@ public with sharing class AdyenDropInController {
         paymentsRequest.reference = cart.Id;
         paymentsRequest.shopperReference = cart.OwnerId;
         paymentsRequest.shopperEmail = UserInfo.getUserEmail();
-        paymentsRequest.returnUrl = AdyenB2BUtils.getSiteCheckoutUrl(clientDetails.urlPath);
+        paymentsRequest.returnUrl = AdyenB2BUtils.getSiteUrl() + clientDetails.urlPath;
         paymentsRequest.billingAddress = clientDetails.getCompatibleBillingAddress();
         paymentsRequest.browserInfo = clientDetails.getBrowserInfo();
         paymentsRequest.applicationInfo = AdyenB2BUtils.getApplicationInfo(adyenAdapter.System_Integrator_Name__c);
-        paymentsRequest.channel = 'Web';
-        paymentsRequest.origin = Url.getOrgDomainUrl().toExternalForm();
+        paymentsRequest.channel = 'web';
+        paymentsRequest.origin = AdyenB2BUtils.getSiteUrl();
+
+        paymentsRequest.authenticationData = new AuthenticationData();
+        paymentsRequest.authenticationData.threeDSRequestData = new ThreeDSRequestData();
+        paymentsRequest.authenticationData.threeDSRequestData.nativeThreeDS = 'preferred';
+
         return paymentsRequest;
     }
 
@@ -97,7 +102,6 @@ public with sharing class AdyenDropInController {
 
         Map<String,String> additionalData = new Map<String,String>();
         additionalData.put('pspReference', paymentsResp.pspReference);
-        additionalData.put('isAsync', String.valueOf(paymentsResp.resultCode != PaymentsResponse.ResultCodeEnum.AUTHORISED));
         postAuthRequest.additionalData = additionalData;
 
         ConnectApi.PostAuthorizationResponse postAuthorizationResponse = Test.isRunningTest() ? mockPostAuthResponse() : ConnectApi.Payments.postAuth(postAuthRequest);

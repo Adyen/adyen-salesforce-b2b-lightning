@@ -13,14 +13,14 @@ public with sharing class AdyenB2BUtils {
         }
     }
 
-    public static String getSiteCheckoutUrl(String urlPath) {
+    public static String getSiteUrl() {
         Id networkId = Network.getNetworkId();
         if (!Test.isRunningTest() && networkId == null ) {
             throw new AuraHandledException('Could not get site URL');
         }
         String networkLoginUrl = Test.isRunningTest() ? Url.getOrgDomainUrl().toExternalForm() + '/login' : Network.getLoginUrl(networkId);
-        String networkCheckoutUrl = networkLoginUrl.replace('/login', urlPath);
-        return networkCheckoutUrl;
+        String networkSiteUrl = networkLoginUrl.removeEnd('/login');
+        return networkSiteUrl;
     }
 
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
