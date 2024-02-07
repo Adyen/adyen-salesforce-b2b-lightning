@@ -1,4 +1,4 @@
-import {api, wire, LightningElement} from 'lwc';
+import {api, LightningElement} from 'lwc';
 import adyenCheckoutCSS from '@salesforce/resourceUrl/AdyenCheckoutCSS';
 import adyenCheckoutJS from '@salesforce/resourceUrl/AdyenCheckoutJS';
 import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPaymentMethods';
@@ -7,7 +7,7 @@ import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsC
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
-import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
+import { NavigationMixin } from 'lightning/navigation';
 
 const CheckoutStage = {
     CHECK_VALIDITY_UPDATE: 'CHECK_VALIDITY_UPDATE',
