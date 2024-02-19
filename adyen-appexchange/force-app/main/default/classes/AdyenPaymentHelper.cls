@@ -1,26 +1,26 @@
 public with sharing class AdyenPaymentHelper {
-
-    @TestVisible
-    public static String TEST_PAYMENT_METHOD_ID;
-
      /**
      *  Receives Payment Gateway Context from AdyenAsyncAdapter, looks at the context type and then invokes the appropriate Capture or Refund operation
      * 
-     * @param paymentGatewayContext
+     * @param PaymentGatewayContext from Salesforce
      * @return `CommercePayments.GatewayResponse`
      */
-    public static CommercePayments.GatewayResponse handleFulfillmentOrderStatusChange(CommercePayments.paymentGatewayContext paymentGatewayContext){
-
+    public static CommercePayments.GatewayResponse handleFulfillmentOrderStatusChange(CommercePayments.PaymentGatewayContext paymentGatewayContext){
         CommercePayments.RequestType paymentRequestType = paymentGatewayContext.getPaymentRequestType();
         CommercePayments.PaymentGatewayRequest paymentRequest = paymentGatewayContext.getPaymentRequest();
 
-        System.debug('------------->Adyen payment req type: ' + paymentRequestType);
-
         try {
-            if(paymentRequestType == CommercePayments.RequestType.Authorize)                  return authorize((CommercePayments.AuthorizationRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.Capture)               return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest)paymentRequest);
-            else if(paymentRequestType == CommercePayments.RequestType.ReferencedRefund)      return AdyenRefundHelper.refund((CommercePayments.ReferencedRefundRequest)paymentRequest);
-            else return null;
+            if (paymentRequestType == CommercePayments.RequestType.Authorize) {
+                return authorize((CommercePayments.AuthorizationRequest) paymentRequest);
+            } else if (paymentRequestType == CommercePayments.RequestType.Capture) {
+                return AdyenCaptureHelper.capture((CommercePayments.CaptureRequest) paymentRequest);
+            } else if (paymentRequestType == CommercePayments.RequestType.ReferencedRefund) {
+                return AdyenRefundHelper.refund((CommercePayments.ReferencedRefundRequest) paymentRequest);
+            } else if (paymentRequestType == CommercePayments.RequestType.PostAuth) {
+                return createPostAuthResponse((CommercePayments.PostAuthorizationRequest) paymentRequest);
+            } else {
+                return null;
+            }
         } catch (Exception e) {
             return new CommercePayments.GatewayErrorResponse(String.valueOf(AdyenConstants.HTTP_ERROR_CODE), e.getMessage());
         }
@@ -29,7 +29,7 @@ public with sharing class AdyenPaymentHelper {
     /**
      * Invoked by handleFulfillmentOrderStatusChange to authorise funds with Adyen
      * 
-     * @param authRequest
+     * @param authRequest from Salesforce
      * @return `CommercePayments.GatewayResponse`
      * 
      * @see https://docs.adyen.com/api-explorer/#/CheckoutService/v68/post/payments__example_payments-oneclick-direct
@@ -41,7 +41,7 @@ public with sharing class AdyenPaymentHelper {
         Adyen_Adapter__mdt adyenAdapterMdt = AdyenPaymentUtility.retrieveGatewayMetadata(AdyenConstants.DEFAULT_ADAPTER_NAME);
 
         CommercePayments.AuthApiPaymentMethodRequest paymentMethod = authRequest.paymentMethod;
-        String currencyCode = authRequest.currencyIsoCode.toUppercase();
+        String currencyCode = authRequest.currencyIsoCode.toUpperCase();
 
         AuthorisationRequest authorizationRequest = new AuthorisationRequest();
         Double authAmount = AdyenPaymentUtility.normalizeAmount(authRequest.amount);
@@ -63,7 +63,7 @@ public with sharing class AdyenPaymentHelper {
 
         authorizationRequest.reference = AdyenPaymentUtility.getRandomNumber(16);
         authorizationRequest.merchantAccount = adyenAdapterMdt.Merchant_Account__c;
-        authorizationRequest.shopperInteraction = AuthorisationRequest.shopperInteractionEnum.Ecommerce;
+        authorizationRequest.shopperInteraction = AuthorisationRequest.ShopperInteractionEnum.Ecommerce;
         authorizationRequest.shopperReference = UserInfo.getUserId();
         authorizationRequest.applicationInfo = AdyenPaymentUtility.getApplicationInfo(adyenAdapterMdt.System_Integrator_Name__c);
         String body = AdyenPaymentUtility.makeAdyenCompatible(JSON.serialize(authorizationRequest, true));
@@ -80,7 +80,7 @@ public with sharing class AdyenPaymentHelper {
         if(resultCode != null) {
             System.debug('-----> Adyen accepted request');
             CommercePayments.AuthorizationResponse salesforceAuthResponse = new CommercePayments.AuthorizationResponse();
-            if(resultCode == 'Authorised') {
+            if (resultCode == 'Authorised') {
                 Map<String,Object> additionalData = (Map<String,Object>)body.get('additionalData');
                 salesforceAuthResponse.setGatewayAuthCode((String)additionalData.get('authCode'));
                 salesforceAuthResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
@@ -102,4 +102,28 @@ public with sharing class AdyenPaymentHelper {
         }
     }
 
+    public static CommercePayments.GatewayResponse createPostAuthResponse(CommercePayments.PostAuthorizationRequest postAuthRequest) {
+        CommercePayments.PostAuthorizationResponse postAuthorizationResponse = new CommercePayments.PostAuthorizationResponse();
+        String pspReference = postAuthRequest.additionalData.get('pspReference');
+        if (pspReference == null) {
+            pspReference = getRandomNumber(16);
+        }
+
+        if (postAuthRequest.amount!=null) {
+            postAuthorizationResponse.setAmount(postAuthRequest.amount);
+        }
+        postAuthorizationResponse.setGatewayResultCode('success');
+        postAuthorizationResponse.setGatewayResultCodeDescription('Transaction Normal');
+        postAuthorizationResponse.setGatewayReferenceNumber(pspReference);
+        postAuthorizationResponse.setSalesforceResultCodeInfo(AdyenConstants.SUCCESS_SALESFORCE_RESULT_CODE_INFO);
+        postAuthorizationResponse.setGatewayDate(System.now());
+        postAuthorizationResponse.setAsync(true);
+
+        return postAuthorizationResponse;
+    }
+
+    private static String getRandomNumber(Integer stringLength){
+        final Integer max = Integer.valueOf(Math.pow(10,stringLength) - 1);
+        return String.valueOf(Math.round(Math.random() * max)).leftPad(stringLength,'0');
+    }
 }
