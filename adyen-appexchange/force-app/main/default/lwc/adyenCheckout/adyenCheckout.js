@@ -1,4 +1,4 @@
-import {api, wire, LightningElement} from 'lwc';
+import {api, LightningElement} from 'lwc';
 import adyenCheckoutCSS from '@salesforce/resourceUrl/AdyenCheckoutCSS';
 import adyenCheckoutJS from '@salesforce/resourceUrl/AdyenCheckoutJS';
 import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPaymentMethods';
@@ -7,46 +7,82 @@ import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsC
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
-import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { NavigationMixin } from 'lightning/navigation';
 
+const CheckoutStage = {
+    CHECK_VALIDITY_UPDATE: 'CHECK_VALIDITY_UPDATE',
+    REPORT_VALIDITY_SAVE: 'REPORT_VALIDITY_SAVE',
+    BEFORE_PAYMENT: 'BEFORE_PAYMENT',
+    PAYMENT: 'PAYMENT',
+    BEFORE_PLACE_ORDER: 'BEFORE_PLACE_ORDER',
+    PLACE_ORDER: 'PLACE_ORDER'
+};
 export default class AdyenCheckoutComponent extends useCheckoutComponent(NavigationMixin(LightningElement)) {
     static renderMode = 'light';
     @api adyenAdapter
     @api adyenEnvironment;
     @api checkoutDetails;
     @api urlPath
+    adyenCheckout;
+    mountedDropIn;
     loading = true;
-    error = false;
-    detailsSubmitted = false;
+    error;
+    dropInIsValid = false;
     paymentMethods;
     clientKey;
-    orderReferenceNumber;
     cardData = { holderName: '', brand: '', bin: '', lastFourDigits: ''};
+    resolvePayment = null;
+    rejectPayment = null;
 
-    @wire(CurrentPageReference)
-    async getStateParameters(currentPageReference) {
-        if (currentPageReference) {
-            const redirectResult = currentPageReference.state?.redirectResult;
-            if (redirectResult && !this.detailsSubmitted) {
-                this.detailsSubmitted = true;
-                const checkout = await this.getAdyenCheckout();
-                checkout.submitDetails({data: {details: {redirectResult}}});
-            }
-        }
-    }
+    // the code commented below will be changed/implemented properly in SFI-581
+    // @wire(CurrentPageReference)
+    // async getStateParameters(currentPageReference) {
+    //     console.log('get url params');
+    //     if (currentPageReference) {
+    //         const redirectResult = currentPageReference.state?.redirectResult;
+    //         if (redirectResult && !this.detailsSubmitted) {
+    //             this.detailsSubmitted = true;
+    //             this.adyenCheckout = await this.getAdyenCheckout();
+    //             this.adyenCheckout.submitDetails({data: {details: {redirectResult}}});
+    //         }
+    //     }
+    // }
 
     connectedCallback() {
         this.loading = true;
         this.constructAdyenCheckout();
     }
 
+    stageAction(checkoutStage) {
+        switch (checkoutStage) {
+            case CheckoutStage.REPORT_VALIDITY_SAVE:
+                return Promise.resolve(this.reportValidity());
+            case CheckoutStage.PAYMENT:
+                return this.processDropInPayment();
+            default:
+                return Promise.resolve(true);
+        }
+    }
+    reportValidity() {
+        const cardDataIsFilled = Object.values(this.cardData).every(property => {
+            return typeof property === 'string' && property.length > 0;
+        });
+        if (!this.dropInIsValid || !cardDataIsFilled) {
+            this.dispatchUpdateErrorAsync({
+                groupId: 'Card details',
+                type: '/commerce/errors/checkout-failure',
+                exception: 'Card details must be filled in.',
+            });
+        }
+        return cardDataIsFilled;
+    }
+
     async constructAdyenCheckout() {
         try {
-            const checkout = await this.getAdyenCheckout();
-            checkout.create('dropin').mount('#dropin-container');
+            this.adyenCheckout = await this.getAdyenCheckout();
+            this.mountedDropIn = this.adyenCheckout.create('dropin').mount('#dropin-container');
         } catch (error) {
-            this.handleError(error);
+            this.handleComponentError(error);
         } finally {
             this.loading = false;
         }
@@ -73,7 +109,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
     }
 
-    handleError(error) {
+    handleComponentError(error) {
         console.error(error);
         this.error = error;
     }
@@ -84,50 +120,18 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             clientKey: this.clientKey,
             locale: userLocale,
             environment: this.adyenEnvironment,
-            onSubmit: async (state, dropin) => {
-                try {
-                    this.loading = true;
-                    const clientData = {
-                        paymentMethodType: state.data.paymentMethod.type,
-                        paymentMethod: JSON.stringify(state.data.paymentMethod),
-                        adyenAdapterName: this.adyenAdapter,
-                        browserInfo: JSON.stringify(state.data.browserInfo),
-                        billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
-                        cardData: this.cardData,
-                        urlPath: this.urlPath
-                    }
-                    const paymentResponse = JSON.parse(await makePayment({clientDetails: clientData}));
-                    if (paymentResponse.action) {
-                        dropin.handleAction(paymentResponse.action);
-                    } else if (paymentResponse.resultCode === 'AUTHORISED') {
-                        const placeOrderResult = await this.dispatchPlaceOrderAsync();
-                        this.showConfirmationPage(placeOrderResult);
-                    } else {
-                        this.showToast('Not authorized', 'Payment was not authorized, try again', 'error');
-                    }
-                } catch (error) {
-                    this.handleError(error);
-                } finally {
-                    this.loading = false;
+            showPayButton: false,
+            onSubmit: (state, dropin) => {
+                if (state.isValid === false) {
+                    throw new Error('invalid state');
                 }
+                this.mySubmit(state, dropin);
             },
-            onAdditionalDetails: async (state, dropin) => {
-                try {
-                    this.loading = true;
-                    const response = JSON.parse(await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter}));
-                    if (response.action) {
-                        dropin.handleAction(response.action);
-                    } else if (response.resultCode === 'AUTHORISED') {
-                        const placeOrderResult = await this.dispatchPlaceOrderAsync();
-                        this.showConfirmationPage(placeOrderResult);
-                    } else {
-                        this.showToast('Not authorized', 'Payment was not authorized, try again', 'error');
-                    }
-                } catch (error) {
-                    this.handleError(error);
-                } finally {
-                    this.loading = false;
+            onAdditionalDetails: (state, dropin) => {
+                if (state.isValid === false) {
+                    throw new Error('invalid state');
                 }
+                this.myAdditionalDetails(state, dropin);
             },
             paymentMethodsConfiguration: {
                 card: {
@@ -136,12 +140,13 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                     hideCVC: false,
                     onFieldValid: (data) => {
                         this.cardData.lastFourDigits =  data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
-                        this.cardData.bin =  data.issuerBin ? data.issuerBin : this.cardData.bin;
+                        this.cardData.bin =  data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
                     },
                     onChange: (data) => {
+                        this.dropInIsValid = data.isValid;
                         const paymentMethod = data.data?.paymentMethod;
                         if (paymentMethod) {
-                            this.cardData.holderName = paymentMethod.holderName ? paymentMethod.holderName : this.cardData.holderName;
+                            this.cardData.holderName = paymentMethod.holderName ?  paymentMethod.holderName : this.cardData.holderName;
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
                         }
                     }
@@ -150,25 +155,72 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         };
     }
 
-    showConfirmationPage(placeOrderResult) {
-        const orderPageRef = {
-            type: 'comm__namedPage',
-            attributes: {
-                name: 'Order'
+    async mySubmit(state, dropin) {
+        try {
+            this.loading = true;
+            const clientData = {
+                paymentMethodType: state.data.paymentMethod.type,
+                paymentMethod: JSON.stringify(state.data.paymentMethod),
+                adyenAdapterName: this.adyenAdapter,
+                browserInfo: JSON.stringify(state.data.browserInfo),
+                billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
+                cardData: this.cardData,
+                urlPath: this.urlPath
             }
-        };
-        orderPageRef.state = {
-            orderNumber: placeOrderResult.orderReferenceNumber
-        };
-        this[NavigationMixin.Navigate](orderPageRef);
+            const paymentResponse = JSON.parse(await makePayment({clientDetails: clientData}));
+            await this.handleResponse(paymentResponse, dropin);
+        } catch (error) {
+            this.handleFailedPayment(JSON.stringify(error));
+        } finally {
+            this.loading = false;
+        }
     }
 
-    showToast(title, message, variant) {
-        const event = new ShowToastEvent({
-            title: title,
-            variant: variant,
-            message: message,
+    async myAdditionalDetails(state, dropin) {
+        try {
+            this.loading = true;
+            const response = JSON.parse(await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter}));
+            await this.handleResponse(response, dropin);
+        } catch (error) {
+            this.handleFailedPayment(JSON.stringify(error));
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    processDropInPayment() {
+        return new Promise((resolve, reject) => {
+            this.resolvePayment = resolve;
+            this.rejectPayment = reject;
+            this.mountedDropIn.submit();
+        }).then(result => {
+            return result;
+        }).catch(error => {
+            return error;
         });
-        this.dispatchEvent(event);
+    }
+
+    async handleResponse(response, dropin) {
+        if (response.action) {
+            await dropin.handleAction(response.action);
+        } else if (response.resultCode === 'AUTHORISED') {
+            this.handleSuccessfulPayment();
+        } else {
+            this.handleFailedPayment('not authorized');
+        }
+    }
+
+    handleSuccessfulPayment() {
+        this.resolvePayment(true);
+    }
+
+    handleFailedPayment(errorMsg) {
+        console.error('error payment', errorMsg);
+        this.dispatchUpdateErrorAsync({
+            groupId: 'Payment processing',
+            type: '/commerce/errors/checkout-failure',
+            exception: 'Payment failed with: ' + errorMsg,
+        });
+        this.rejectPayment(false);
     }
 }
