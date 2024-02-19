@@ -149,10 +149,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                             this.cardData.holderName = paymentMethod.holderName ?  paymentMethod.holderName : this.cardData.holderName;
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
                         }
-                    },
-                    onError: (error) => {
-                        console.error('Something bad happened: ');
-                        console.error(error);
                     }
                 }
             }
