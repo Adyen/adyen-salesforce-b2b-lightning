@@ -32,12 +32,18 @@ private class AdyenAuthWebhookHandlerTest {
         Assert.isTrue(response.containsIgnoreCase('unsupported'));
     }
 
-    @IsTest
+    @IsTest(SeeAllData=true)
     static void successfulNotificationWithPayAuthTest() {
         // given payment authorization pending
+        Account acct = new Account(Name = 'Test');
+        insert acct;
+        Order testOrder = TestDataFactory.insertOrderAndRelatedRecords(acct.Id, 9.99, 0.99);
+        OrderPaymentSummary orderPaymentSummary = TestDataFactory.createOrderSummaryRecords(testOrder.Id);
+
         PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+        paymentAuthorization.OrderPaymentSummaryId = orderPaymentSummary.Id;
         insert paymentAuthorization;
-        String authWebhook = TestDataFactory.mockWebhookRequest(AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE, 'QFQTPCQ8HXSKGK82', '0a61Q000000LMuaQAG', true);
+        String authWebhook = TestDataFactory.mockWebhookRequest(AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE, paymentAuthorization.GatewayRefNumber, '0a61Q000000LMuaQAG', true);
         RestRequest req = createRestRequest();
         req.requestBody = Blob.valueOf(authWebhook);
         RestContext.request = req;
@@ -46,8 +52,8 @@ private class AdyenAuthWebhookHandlerTest {
         // then
         Assert.isNotNull(response);
         Assert.areEqual('[accepted]', response);
-        Assert.areEqual('Processed', [SELECT Status FROM PaymentAuthorization LIMIT 1].Status);
-        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = 'Success' AND ReferencedEntityId = :paymentAuthorization.Id].size());
+        Assert.isTrue(AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name().equalsIgnoreCase([SELECT Status FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id].Status));
+        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name() AND ReferencedEntityId = :paymentAuthorization.Id].size());
 
         // given payment authorization already processed
         // when
@@ -55,15 +61,20 @@ private class AdyenAuthWebhookHandlerTest {
         // then
         Assert.isNotNull(response);
         Assert.isTrue(response.containsIgnoreCase('not pending'));
-        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = 'NoOp' AND ReferencedEntityId = :paymentAuthorization.Id].size());
+        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.NOOP.name() AND ReferencedEntityId = :paymentAuthorization.Id].size());
     }
 
-    @IsTest
+    @IsTest(SeeAllData=true)
     static void unsuccessfulNotificationWithPayAuthTest() {
         // given payment authorization pending
+        Account acct = new Account(Name = 'Test 2');
+        insert acct;
+        Order testOrder = TestDataFactory.insertOrderAndRelatedRecords(acct.Id, 9.99, 0.99);
+        OrderPaymentSummary orderPaymentSummary = TestDataFactory.createOrderSummaryRecords(testOrder.Id);
         PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+        paymentAuthorization.OrderPaymentSummaryId = orderPaymentSummary.Id;
         insert paymentAuthorization;
-        String authWebhook = TestDataFactory.mockWebhookRequest(AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE, 'QFQTPCQ8HXSKGK82', '0a61Q000000LMuaQAG', false);
+        String authWebhook = TestDataFactory.mockWebhookRequest(AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE, paymentAuthorization.GatewayRefNumber, '0a61Q000000LMuaQAG', false);
         RestRequest req = createRestRequest();
         req.requestBody = Blob.valueOf(authWebhook);
         RestContext.request = req;
@@ -72,8 +83,8 @@ private class AdyenAuthWebhookHandlerTest {
         // then
         Assert.isNotNull(response);
         Assert.areEqual('[accepted]', response);
-        Assert.areEqual('Failed', [SELECT Status FROM PaymentAuthorization LIMIT 1].Status);
-        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = 'Success' AND ReferencedEntityId = :paymentAuthorization.Id].size());
+        Assert.isTrue(AdyenB2BConstants.PaymentAuthorizationStatus.FAILED.name().equalsIgnoreCase([SELECT Status FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id].Status));
+        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name() AND ReferencedEntityId = :paymentAuthorization.Id].size());
     }
 
     @IsTest(SeeAllData=true)
@@ -106,7 +117,7 @@ private class AdyenAuthWebhookHandlerTest {
         String response = AdyenAuthWebhookHandler.doPost();
         // then
         Assert.isNotNull(response);
-        Assert.isTrue(response.containsIgnoreCase('no payment found'));
+        Assert.isTrue(response.containsIgnoreCase('no cart found'));
         Assert.isTrue([SELECT Id FROM PaymentGatewayLog].isEmpty());
     }
 

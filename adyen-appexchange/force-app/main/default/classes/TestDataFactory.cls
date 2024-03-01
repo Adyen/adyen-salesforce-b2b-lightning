@@ -233,6 +233,93 @@ public without sharing class TestDataFactory {
         return paymentAuthorization;
     }
 
+    public static Order insertOrderAndRelatedRecords(Id acctId, Decimal productUnitPrice, Decimal prodTaxAmount) {
+        Product2 product = new Product2(
+                Name = 'Test Product',
+                Description = 'Test Description'
+        );
+        insert(product);
+
+        PricebookEntry pricebookEntry = new PricebookEntry(
+                Pricebook2Id = Test.getStandardPricebookId(),
+                Product2Id = product.Id,
+                UnitPrice = productUnitPrice,
+                IsActive = true,
+                UseStandardPrice = false
+        );
+        insert pricebookEntry;
+
+        Order order = new Order(
+                AccountId = acctId,
+                EffectiveDate = Date.newInstance(2023, 1, 1),
+                OrderedDate = Date.newInstance(2023, 1, 1),
+                Status = 'Draft',
+                Pricebook2Id = pricebookEntry.Pricebook2Id
+        );
+        insert(order);
+
+        OrderDeliveryMethod orderDeliveryMethod = new OrderDeliveryMethod(
+                Name = 'Order Delivery Method',
+                ProductId = product.Id
+        );
+        insert orderDeliveryMethod;
+
+        OrderDeliveryGroup orderDeliveryGroup = new OrderDeliveryGroup(
+                DeliverToName = 'Buyer User',
+                DeliverToStreet = 'test Street',
+                DeliverToCity = 'Minneapolis',
+                DeliverToState = 'MN',
+                DeliverToPostalCode = '55402',
+                DeliverToCountry = 'US',
+                OrderDeliveryMethodId = orderDeliveryMethod.Id,
+                OrderId = order.Id
+        );
+        insert orderDeliveryGroup;
+
+        OrderItem orderItem = new OrderItem(
+                Description = 'Test Product',
+                OrderId = order.Id,
+                Product2Id = product.Id,
+                PricebookEntryId = pricebookEntry.Id,
+                UnitPrice = productUnitPrice,
+                Quantity = 1,
+                TotalLineAmount = productUnitPrice,
+                Type = 'Order Product',
+                OrderDeliveryGroupId = orderDeliveryGroup.Id
+        );
+        insert orderItem;
+
+        OrderItemTaxLineItem tax = new OrderItemTaxLineItem(
+                OrderItemId = orderItem.Id,
+                Amount = prodTaxAmount,
+                Name = 'Tax for product',
+                Type = 'Estimated',
+                TaxEffectiveDate = System.today()
+        );
+        insert tax;
+
+        order.Status = 'Activated';
+        update order;
+
+        return order;
+    }
+
+    public static OrderPaymentSummary createOrderSummaryRecords(Id orderId) {
+        ConnectApi.OrderSummaryInputRepresentation osir = new ConnectApi.OrderSummaryInputRepresentation();
+        osir.orderId = orderId;
+        osir.orderLifeCycleType = 'MANAGED';
+        ConnectApi.OrderSummaryOutputRepresentation osor = ConnectApi.OrderSummaryCreation.createOrderSummary(osir);
+
+        OrderPaymentSummary orderPaymentSummary = new OrderPaymentSummary(
+                OrderSummaryId = osor.orderSummaryId,
+                Method = 'Visa',
+                Type = 'Unknown'
+        );
+        insert orderPaymentSummary;
+
+        return orderPaymentSummary;
+    }
+
     // HTTP Mocks
     public class PaymentMethodsSuccessMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
