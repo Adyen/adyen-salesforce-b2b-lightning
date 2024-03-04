@@ -17,13 +17,13 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
         this.orderByClause = orderByClause;
     }
 
-    public Database.QueryLocator start(Database.BatchableContext BC) {
+    public Database.QueryLocator start(Database.BatchableContext bc) {
         String baseQuery = 'SELECT InteractionStatus, GatewayRefNumber, GatewayResultCode FROM PaymentGatewayLog WHERE InteractionType = \'Authorization\' AND InteractionStatus = \'Initiated\' AND ReferencedEntityId = NULL ';
         String finalQuery = buildQuery(baseQuery, additionalQueryFilters, orderByClause);
         return Database.getQueryLocator(finalQuery);
     }
 
-    public void execute(Database.BatchableContext BC, List<PaymentGatewayLog> paymentGatewayLogs) {
+    public void execute(Database.BatchableContext bc, List<PaymentGatewayLog> paymentGatewayLogs) {
         try {
             Map<String, PaymentGatewayLog> logsByPspReferenceMap = mapLogsByPspReference(paymentGatewayLogs);
             Set<String> pspReferences = logsByPspReferenceMap.keySet();
