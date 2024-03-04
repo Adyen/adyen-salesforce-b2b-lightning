@@ -3,7 +3,7 @@ private class AdyenWebhookBatchTest {
     @IsTest
     static void authWebhookLogProcessingTest() {
         // given
-        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name());
         insert paymentAuthorization;
         PaymentGatewayLog paymentGatewayLog = createAuthLog(paymentAuthorization.GatewayRefNumber, 'true');
         insert paymentGatewayLog;
@@ -15,8 +15,8 @@ private class AdyenWebhookBatchTest {
         // then
         paymentAuthorization = [SELECT Status, OrderPaymentSummaryId FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id];
         paymentGatewayLog = [SELECT InteractionStatus, ReferencedEntityId, OrderPaymentSummaryId FROM PaymentGatewayLog WHERE Id = :paymentGatewayLog.Id];
-        Assert.areEqual('Processed', paymentAuthorization.Status);
-        Assert.areEqual('Success', paymentGatewayLog.InteractionStatus);
+        Assert.isTrue(AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name().equalsIgnoreCase(paymentAuthorization.Status));
+        Assert.isTrue(AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name().equalsIgnoreCase(paymentGatewayLog.InteractionStatus));
         Assert.areEqual(paymentAuthorization.Id, paymentGatewayLog.ReferencedEntityId);
         Assert.areEqual(paymentAuthorization.OrderPaymentSummaryId, paymentGatewayLog.OrderPaymentSummaryId);
     }
@@ -24,7 +24,7 @@ private class AdyenWebhookBatchTest {
     @IsTest
     static void authWebhookPayAuthNotPendingTest() {
         // given
-        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Processed');
+        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization(AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name());
         insert paymentAuthorization;
         PaymentGatewayLog paymentGatewayLog = createAuthLog(paymentAuthorization.GatewayRefNumber, 'true');
         insert paymentGatewayLog;
@@ -36,14 +36,14 @@ private class AdyenWebhookBatchTest {
         // then
         paymentAuthorization = [SELECT Status FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id];
         paymentGatewayLog = [SELECT InteractionStatus FROM PaymentGatewayLog WHERE Id = :paymentGatewayLog.Id];
-        Assert.areEqual('Processed', paymentAuthorization.Status);
-        Assert.areEqual('Success', paymentGatewayLog.InteractionStatus);
+        Assert.isTrue(AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name().equalsIgnoreCase(paymentAuthorization.Status));
+        Assert.isTrue(AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name().equalsIgnoreCase(paymentGatewayLog.InteractionStatus));
     }
 
     @IsTest
     static void authWebhookNoPayAuthRelatedTest() {
         // given
-        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+        PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name());
         insert paymentAuthorization;
         PaymentGatewayLog paymentGatewayLog = createAuthLog('NoGoodPSPReference', 'true');
         insert paymentGatewayLog;
@@ -64,14 +64,14 @@ private class AdyenWebhookBatchTest {
         // given
         List<PaymentAuthorization> paymentAuthorizations = new List<PaymentAuthorization>();
         for (Integer i = 0; i < 200; i++) {
-            PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+            PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name());
             paymentAuthorization.GatewayRefNumber = paymentAuthorization.GatewayRefNumber + i;
             paymentAuthorizations.add(paymentAuthorization);
         }
         insert paymentAuthorizations;
         List<PaymentAuthorization> notRelatedPaymentAuthorizations = new List<PaymentAuthorization>();
         for (Integer i = 200; i < 400; i++) {
-            PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization('Pending');
+            PaymentAuthorization paymentAuthorization = TestDataFactory.createPaymentAuthorization(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name());
             paymentAuthorization.GatewayRefNumber = paymentAuthorization.GatewayRefNumber + i;
             notRelatedPaymentAuthorizations.add(paymentAuthorization);
         }
@@ -94,10 +94,10 @@ private class AdyenWebhookBatchTest {
         Database.executeBatch(adyenWebhookBatch);
         Test.stopTest();
         // then
-        Integer numberPAPending = [SELECT COUNT() FROM PaymentAuthorization WHERE Status = 'Pending'];
-        Integer numberPAProcessed = [SELECT COUNT() FROM PaymentAuthorization WHERE Status = 'Processed'];
-        Integer numberGateLogsInitiated = [SELECT COUNT() FROM PaymentGatewayLog WHERE InteractionStatus = 'Initiated'];
-        Integer numberGateLogsSuccess = [SELECT COUNT() FROM PaymentGatewayLog WHERE InteractionStatus = 'Success'];
+        Integer numberPAPending = [SELECT COUNT() FROM PaymentAuthorization WHERE Status = :AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name()];
+        Integer numberPAProcessed = [SELECT COUNT() FROM PaymentAuthorization WHERE Status = :AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name()];
+        Integer numberGateLogsInitiated = [SELECT COUNT() FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.INITIATED.name()];
+        Integer numberGateLogsSuccess = [SELECT COUNT() FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name()];
         Assert.areEqual(300, numberPAPending);
         Assert.areEqual(100, numberPAProcessed);
         Assert.areEqual(100, numberGateLogsInitiated);
@@ -119,14 +119,14 @@ private class AdyenWebhookBatchTest {
         Test.stopTest();
         // then
         paymentGatewayLog = [SELECT InteractionStatus FROM PaymentGatewayLog WHERE Id = :paymentGatewayLog.Id];
-        Assert.areEqual('Initiated', paymentGatewayLog.InteractionStatus);
+        Assert.isTrue(AdyenB2BConstants.PaymentGatewayLogStatus.INITIATED.name().equalsIgnoreCase(paymentGatewayLog.InteractionStatus));
     }
 
     private static PaymentGatewayLog createAuthLog(String pspReference, String result) {
         PaymentGatewayLog paymentGatewayLog = new PaymentGatewayLog();
         paymentGatewayLog.GatewayRefNumber = pspReference;
         paymentGatewayLog.InteractionType = 'Authorization';
-        paymentGatewayLog.InteractionStatus = 'Initiated';
+        paymentGatewayLog.InteractionStatus = AdyenB2BConstants.PaymentGatewayLogStatus.INITIATED.name();
         paymentGatewayLog.GatewayResultCode = result;
         return paymentGatewayLog;
     }

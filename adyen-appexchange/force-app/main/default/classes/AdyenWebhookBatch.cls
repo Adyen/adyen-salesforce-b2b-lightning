@@ -1,10 +1,12 @@
-public without sharing class AdyenWebhookBatch implements Database.Batchable<SObject>, Database.Stateful {
+public with sharing class AdyenWebhookBatch implements Database.Batchable<SObject>, Database.Stateful {
     public List<Exception> exceptions = new List<Exception>();
     public String additionalQueryFilters;
     public String orderByClause;
     public List<String> sendEmailToTheseAddresses = new List<String>();
     public Set<String> sendNotificationToTheseUsers = new Set<String>();
     public Id organizationWideEmailAddressId;
+    public Boolean sendEmailNotification = true;
+    public Boolean sendBellNotification = true;
 
     public AdyenWebhookBatch() {
         this(null, 'ORDER BY CreatedDate');
@@ -16,7 +18,7 @@ public without sharing class AdyenWebhookBatch implements Database.Batchable<SOb
     }
 
     public Database.QueryLocator start(Database.BatchableContext BC) {
-        String baseQuery = 'SELECT InteractionStatus, GatewayRefNumber, GatewayResultCode FROM PaymentGatewayLog WHERE InteractionType = \'Authorization\' AND InteractionStatus = \'Initiated\' ';
+        String baseQuery = 'SELECT InteractionStatus, GatewayRefNumber, GatewayResultCode FROM PaymentGatewayLog WHERE InteractionType = \'Authorization\' AND InteractionStatus = \'Initiated\' AND ReferencedEntityId = NULL ';
         String finalQuery = buildQuery(baseQuery, additionalQueryFilters, orderByClause);
         return Database.getQueryLocator(finalQuery);
     }
@@ -39,8 +41,12 @@ public without sharing class AdyenWebhookBatch implements Database.Batchable<SOb
                 FROM AsyncApexJob
                 WHERE Id = :bc.getJobId()
             ];
-            sendErrorEmail(asyncJob);
-            sendCustomNotification(asyncJob);
+            if (sendEmailNotification) {
+                sendErrorEmail(asyncJob);
+            }
+            if (sendBellNotification) {
+                sendCustomNotification(asyncJob);
+            }
         }
     }
 
@@ -62,7 +68,7 @@ public without sharing class AdyenWebhookBatch implements Database.Batchable<SOb
         notification.setTitle('Errors occurred during Adyen Webhook batch process.');
         notification.setBody(buildBodyFor(exceptions));
         notification.setNotificationTypeId([SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'Adyen_Webhook_Job_Exception'].Id);
-        notification.setTargetId('000000000000000AAA');
+        notification.setTargetId('000000000000000AAA'); // dummy value
         Set<String> usersIdToBeNotified = sendNotificationToTheseUsers.isEmpty() ? new Set<String>{asyncJob.CreatedById} : sendNotificationToTheseUsers;
         notification.send(usersIdToBeNotified);
     }
@@ -96,11 +102,11 @@ public without sharing class AdyenWebhookBatch implements Database.Batchable<SOb
 
         for (PaymentAuthorization auth : authorizations) {
             PaymentGatewayLog log = logMap.get(auth.GatewayRefNumber);
-            if (auth.Status.equalsIgnoreCase('Pending')) {
-                auth.Status = Boolean.valueOf(log.GatewayResultCode) ? 'Processed' : 'Failed';
+            if (auth.Status.equalsIgnoreCase(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name())) {
+                auth.Status = Boolean.valueOf(log.GatewayResultCode) ? AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name() : AdyenB2BConstants.PaymentAuthorizationStatus.FAILED.name();
                 authsToUpdate.add(auth);
             }
-            log.InteractionStatus = 'Success';
+            log.InteractionStatus = AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name();
             log.ReferencedEntityId = auth.Id;
             log.OrderPaymentSummaryId = auth.OrderPaymentSummaryId;
             logsToUpdate.add(log);
