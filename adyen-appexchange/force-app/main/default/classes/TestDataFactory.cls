@@ -224,6 +224,102 @@ public without sharing class TestDataFactory {
         );
     }
 
+    public static PaymentAuthorization createPaymentAuthorization(String status) {
+        PaymentAuthorization paymentAuthorization = new PaymentAuthorization();
+        paymentAuthorization.GatewayRefNumber = 'QFQTPCQ8HXSKGK82';
+        paymentAuthorization.Amount = 10.93;
+        paymentAuthorization.ProcessingMode = 'External';
+        paymentAuthorization.Status = status;
+        return paymentAuthorization;
+    }
+
+    public static Order insertOrderAndRelatedRecords(Id acctId, Decimal productUnitPrice, Decimal prodTaxAmount) {
+        Product2 product = new Product2(
+                Name = 'Test Product',
+                Description = 'Test Description'
+        );
+        insert(product);
+
+        PricebookEntry pricebookEntry = new PricebookEntry(
+                Pricebook2Id = Test.getStandardPricebookId(),
+                Product2Id = product.Id,
+                UnitPrice = productUnitPrice,
+                IsActive = true,
+                UseStandardPrice = false
+        );
+        insert pricebookEntry;
+
+        Order order = new Order(
+                AccountId = acctId,
+                EffectiveDate = Date.newInstance(2023, 1, 1),
+                OrderedDate = Date.newInstance(2023, 1, 1),
+                Status = 'Draft',
+                Pricebook2Id = pricebookEntry.Pricebook2Id
+        );
+        insert(order);
+
+        OrderDeliveryMethod orderDeliveryMethod = new OrderDeliveryMethod(
+                Name = 'Order Delivery Method',
+                ProductId = product.Id
+        );
+        insert orderDeliveryMethod;
+
+        OrderDeliveryGroup orderDeliveryGroup = new OrderDeliveryGroup(
+                DeliverToName = 'Buyer User',
+                DeliverToStreet = 'test Street',
+                DeliverToCity = 'Minneapolis',
+                DeliverToState = 'MN',
+                DeliverToPostalCode = '55402',
+                DeliverToCountry = 'US',
+                OrderDeliveryMethodId = orderDeliveryMethod.Id,
+                OrderId = order.Id
+        );
+        insert orderDeliveryGroup;
+
+        OrderItem orderItem = new OrderItem(
+                Description = 'Test Product',
+                OrderId = order.Id,
+                Product2Id = product.Id,
+                PricebookEntryId = pricebookEntry.Id,
+                UnitPrice = productUnitPrice,
+                Quantity = 1,
+                TotalLineAmount = productUnitPrice,
+                Type = 'Order Product',
+                OrderDeliveryGroupId = orderDeliveryGroup.Id
+        );
+        insert orderItem;
+
+        OrderItemTaxLineItem tax = new OrderItemTaxLineItem(
+                OrderItemId = orderItem.Id,
+                Amount = prodTaxAmount,
+                Name = 'Tax for product',
+                Type = 'Estimated',
+                TaxEffectiveDate = System.today()
+        );
+        insert tax;
+
+        order.Status = 'Activated';
+        update order;
+
+        return order;
+    }
+
+    public static OrderPaymentSummary createOrderSummaryRecords(Id orderId) {
+        ConnectApi.OrderSummaryInputRepresentation osir = new ConnectApi.OrderSummaryInputRepresentation();
+        osir.orderId = orderId;
+        osir.orderLifeCycleType = 'MANAGED';
+        ConnectApi.OrderSummaryOutputRepresentation osor = ConnectApi.OrderSummaryCreation.createOrderSummary(osir);
+
+        OrderPaymentSummary orderPaymentSummary = new OrderPaymentSummary(
+                OrderSummaryId = osor.orderSummaryId,
+                Method = 'Visa',
+                Type = 'Unknown'
+        );
+        insert orderPaymentSummary;
+
+        return orderPaymentSummary;
+    }
+
     // HTTP Mocks
     public class PaymentMethodsSuccessMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
@@ -262,6 +358,10 @@ public without sharing class TestDataFactory {
 
     private static String mockPaymentsSuccessfulResponse(Id cartId) {
         return '{"additionalData":{"cvcResult":"1 Matches","fraudResultType":"GREEN","authCode":"090644","avsResult":"5 No AVS data provided","cardBin":"411111","fraudManualReview":"false","aliasType":"Default","paymentMethod":"visa","alias":"H167852639363479","paymentMethodVariant":"visa"},"fraudResult":{"accountScore":50,"results":[{"accountScore":0,"checkId":2,"name":"CardChunkUsage"},{"accountScore":0,"checkId":3,"name":"PaymentDetailUsage"},{"accountScore":0,"checkId":4,"name":"HolderNameUsage"}]},"pspReference":"RCD987QW9HXXGN82","resultCode":"Authorised","amount":{"currency":"EUR","value":49893},"merchantReference":"' + cartId + '","paymentMethod":{"brand":"visa","type":"scheme"}}';
+    }
+
+    public static String mockWebhookRequest(String eventCode, String pspReference, String webCartId, Boolean success) {
+        return '{"live": "false", "notificationItems": [{"NotificationRequestItem": {"additionalData": {"recurring.recurringDetailReference": "9915692881181044", "recurring.shopperReference": "YOUR_SHOPPER_REFERENCE"}, "amount": {"currency": "EUR", "value": 1000}, "eventCode": "' + eventCode + '", "eventDate": "2021-01-01T01:00:00+01:00", "merchantAccountCode": "YOUR_MERCHANT_ACCOUNT", "merchantReference": "' + webCartId + '", "paymentMethod": "ach", "operations": ["CANCEL", "CAPTURE", "REFUND"], "pspReference": "' + pspReference + '", "reason": "null", "success": "' + success + '"}}]}';
     }
 
     private static String genericErrorResponse() {

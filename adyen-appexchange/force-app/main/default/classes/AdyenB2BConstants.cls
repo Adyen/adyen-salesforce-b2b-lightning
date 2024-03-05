@@ -9,6 +9,10 @@ public with sharing class AdyenB2BConstants {
     public static final String CARD_PAYMENT_METHOD_TYPE = 'scheme';
     public static final String BANCONTACT_CARD_PAYMENT_METHOD_TYPE = 'bcmc';
     public static final String BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE = 'bcmc_mobile';
+    public static final String NOTIFICATION_REQUEST_TYPE_AUTHORISE = 'authorisation';
+
+    public enum PaymentAuthorizationStatus {DRAFT, CANCELED, PENDING, PROCESSED, FAILED}
+    public enum PaymentGatewayLogStatus {NOOP, INITIATED, SUCCESS, FAILED, TIMEOUT}
 
     public static final Map<String,String> ADYEN_PAYMENT_TYPE_TO_SF_TYPE = new Map<String,String>{
             'visa' => 'Visa',
