@@ -17,12 +17,6 @@
                     default="AdyenDefault"
             />
             <property
-                    label="URL path"
-                    name="urlPath"
-                    type="String"
-                    default="/checkout"
-            />
-            <property
                     label="Adyen Environment"
                     name="adyenEnvironment"
                     type="String"

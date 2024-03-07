@@ -22,7 +22,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     @api adyenAdapter
     @api adyenEnvironment;
     @api checkoutDetails;
-    @api urlPath
     adyenCheckout;
     mountedDropIn;
     loading = true;
@@ -35,7 +34,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     rejectPayment;
     redirectResult;
     notYetExecuted = true;
-
 
     @wire(CurrentPageReference)
     async wiredPagRef(currentPageReference) {
@@ -175,8 +173,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                 adyenAdapterName: this.adyenAdapter,
                 browserInfo: JSON.stringify(state.data.browserInfo),
                 billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
-                cardData: this.cardData,
-                urlPath: this.urlPath
+                cardData: this.cardData
             }
             const paymentResponse = JSON.parse(await makePayment({clientDetails: clientData}));
             await this.handleResponse(paymentResponse, dropin);
