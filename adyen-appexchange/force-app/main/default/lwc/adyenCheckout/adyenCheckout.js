@@ -1,4 +1,4 @@
-import {api, LightningElement} from 'lwc';
+import { api, wire, LightningElement } from 'lwc';
 import adyenCheckoutCSS from '@salesforce/resourceUrl/AdyenCheckoutCSS';
 import adyenCheckoutJS from '@salesforce/resourceUrl/AdyenCheckoutJS';
 import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPaymentMethods';
@@ -7,7 +7,7 @@ import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsC
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
-import { NavigationMixin } from 'lightning/navigation';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 
 const CheckoutStage = {
     CHECK_VALIDITY_UPDATE: 'CHECK_VALIDITY_UPDATE',
@@ -33,24 +33,33 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     cardData = { holderName: '', brand: '', bin: '', lastFourDigits: ''};
     resolvePayment = null;
     rejectPayment = null;
+    redirectResult;
+    notYetExecuted = true;
 
-    // the code commented below will be changed/implemented properly in SFI-581
-    // @wire(CurrentPageReference)
-    // async getStateParameters(currentPageReference) {
-    //     console.log('get url params');
-    //     if (currentPageReference) {
-    //         const redirectResult = currentPageReference.state?.redirectResult;
-    //         if (redirectResult && !this.detailsSubmitted) {
-    //             this.detailsSubmitted = true;
-    //             this.adyenCheckout = await this.getAdyenCheckout();
-    //             this.adyenCheckout.submitDetails({data: {details: {redirectResult}}});
-    //         }
-    //     }
-    // }
+
+    @wire(CurrentPageReference)
+    async wiredPagRef(currentPageReference) {
+        console.log('wired pag ref with data: ', currentPageReference);
+        if (currentPageReference && this.notYetExecuted) {
+            this.notYetExecuted = false;
+            try {
+                this.redirectResult = currentPageReference.state?.redirectResult;
+                if (this.redirectResult) {
+                    console.log('from redirect flow!');
+                    this.adyenCheckout = await this.getAdyenCheckout(); // TODO: payment methods not needed
+                    const paymentResult = await this.processDropInPayment();
+                } else {
+                    console.log('not redirect flow!')
+                    await this.constructAdyenCheckout();
+                }
+            } catch(ex) {
+                this.handleComponentError(ex);
+            }
+        }
+    }
 
     connectedCallback() {
         this.loading = true;
-        this.constructAdyenCheckout();
     }
 
     stageAction(checkoutStage) {
@@ -177,6 +186,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     async myAdditionalDetails(state, dropin) {
+        console.log('my additional details data:', state.data);
         try {
             this.loading = true;
             const response = JSON.parse(await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter}));
@@ -192,7 +202,13 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         return new Promise((resolve, reject) => {
             this.resolvePayment = resolve;
             this.rejectPayment = reject;
-            this.mountedDropIn.submit();
+            if (this.mountedDropIn) {
+                console.log('process payment mounted drop in');
+                this.mountedDropIn.submit();
+            } else {
+                console.log('process payment not mounted, submit details');
+                this.adyenCheckout.submitDetails({data: {details: {redirectResult: this.redirectResult}}});
+            }
         }).then(result => {
             return result;
         }).catch(error => {
@@ -201,26 +217,65 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     async handleResponse(response, dropin) {
+        console.log('handle response: ', response, dropin);
         if (response.action) {
+            console.log('action needed');
             await dropin.handleAction(response.action);
         } else if (response.resultCode === 'AUTHORISED') {
-            this.handleSuccessfulPayment();
+            await this.handleSuccessfulPayment();
         } else {
             this.handleFailedPayment('not authorized');
         }
     }
 
-    handleSuccessfulPayment() {
-        this.resolvePayment(true);
+    async handleSuccessfulPayment() {
+        if (this.mountedDropIn) {
+            console.log('mounted authorize flow, return true');
+            this.resolvePayment(true);
+        } else {
+            console.log('unmounted authorized flow, navigate to order placed');
+            const placeOrderResult = await this.dispatchPlaceOrderAsync();
+            this.navigateToConfirmationPage(placeOrderResult);
+        }
     }
 
     handleFailedPayment(errorMsg) {
         console.error('error payment', errorMsg);
-        this.dispatchUpdateErrorAsync({
-            groupId: 'Payment processing',
-            type: '/commerce/errors/checkout-failure',
-            exception: 'Payment failed with: ' + errorMsg,
-        });
-        this.rejectPayment(false);
+        if (this.mountedDropIn) {
+            this.dispatchUpdateErrorAsync({
+                groupId: 'Payment processing',
+                type: '/commerce/errors/checkout-failure',
+                exception: 'Payment failed with: ' + errorMsg,
+            });
+            this.rejectPayment(false);
+        } else {
+            this.navigateToErrorPage(errorMsg);
+        }
+    }
+
+    navigateToConfirmationPage(placeOrderResult) {
+        const orderPageRef = {
+            type: 'comm__namedPage',
+            attributes: {
+                name: 'Order'
+            }
+        };
+        orderPageRef.state = {
+            orderNumber: placeOrderResult.orderReferenceNumber
+        };
+        this[NavigationMixin.Navigate](orderPageRef);
+    }
+
+    navigateToErrorPage(errorMsg) {
+        const errorPageRef = {
+            type: 'comm__namedPage',
+            attributes: {
+                name: 'Error'
+            }
+        };
+        errorPageRef.state = {
+            paymentError: errorMsg
+        };
+        this[NavigationMixin.Navigate](orderPageRef);
     }
 }
