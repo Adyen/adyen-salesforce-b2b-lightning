@@ -5,7 +5,7 @@ import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPay
 import makePayment from '@salesforce/apex/AdyenDropInController.makePayment';
 import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsCall';
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
-import { useCheckoutComponent } from 'commerce/checkoutApi';
+import { useCheckoutComponent, placeOrder } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 
@@ -31,25 +31,22 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     paymentMethods;
     clientKey;
     cardData = { holderName: '', brand: '', bin: '', lastFourDigits: ''};
-    resolvePayment = null;
-    rejectPayment = null;
+    resolvePayment;
+    rejectPayment;
     redirectResult;
     notYetExecuted = true;
 
 
     @wire(CurrentPageReference)
     async wiredPagRef(currentPageReference) {
-        console.log('wired pag ref with data: ', currentPageReference);
         if (currentPageReference && this.notYetExecuted) {
             this.notYetExecuted = false;
             try {
                 this.redirectResult = currentPageReference.state?.redirectResult;
                 if (this.redirectResult) {
-                    console.log('from redirect flow!');
-                    this.adyenCheckout = await this.getAdyenCheckout(); // TODO: payment methods not needed
-                    const paymentResult = await this.processDropInPayment();
+                    this.adyenCheckout = await this.getAdyenCheckoutNoPaymentMethods();
+                    await this.processDropInPayment();
                 } else {
-                    console.log('not redirect flow!')
                     await this.constructAdyenCheckout();
                 }
             } catch(ex) {
@@ -116,6 +113,11 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             this.handlePaymentInfo()
         ]);
         return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
+    }
+
+    async getAdyenCheckoutNoPaymentMethods() {
+        await this.loadAdyenScripts();
+        return await AdyenCheckout(this.createConfigObject(null));
     }
 
     handleComponentError(error) {
@@ -186,7 +188,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     async myAdditionalDetails(state, dropin) {
-        console.log('my additional details data:', state.data);
         try {
             this.loading = true;
             const response = JSON.parse(await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter}));
@@ -203,10 +204,8 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             this.resolvePayment = resolve;
             this.rejectPayment = reject;
             if (this.mountedDropIn) {
-                console.log('process payment mounted drop in');
                 this.mountedDropIn.submit();
             } else {
-                console.log('process payment not mounted, submit details');
                 this.adyenCheckout.submitDetails({data: {details: {redirectResult: this.redirectResult}}});
             }
         }).then(result => {
@@ -217,24 +216,20 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     async handleResponse(response, dropin) {
-        console.log('handle response: ', response, dropin);
         if (response.action) {
-            console.log('action needed');
             await dropin.handleAction(response.action);
         } else if (response.resultCode === 'AUTHORISED') {
             await this.handleSuccessfulPayment();
         } else {
-            this.handleFailedPayment('not authorized');
+            this.handleFailedPayment('not_authorized');
         }
     }
 
     async handleSuccessfulPayment() {
         if (this.mountedDropIn) {
-            console.log('mounted authorize flow, return true');
             this.resolvePayment(true);
         } else {
-            console.log('unmounted authorized flow, navigate to order placed');
-            const placeOrderResult = await this.dispatchPlaceOrderAsync();
+            const placeOrderResult = await placeOrder();
             this.navigateToConfirmationPage(placeOrderResult);
         }
     }
@@ -276,6 +271,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         errorPageRef.state = {
             paymentError: errorMsg
         };
-        this[NavigationMixin.Navigate](orderPageRef);
+        this[NavigationMixin.Navigate](errorPageRef);
     }
 }
