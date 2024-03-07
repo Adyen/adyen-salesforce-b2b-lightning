@@ -168,4 +168,43 @@ private class AdyenDropInControllerTest {
         String pspReference = [SELECT GatewayRefNumber FROM PaymentAuthorization WHERE Id = :paymentAuthorization.Id].GatewayRefNumber;
         Assert.areEqual(paymentsResp.pspReference, pspReference);
     }
+
+    @IsTest
+    private static void buildPaymentsRequestTestForThreeDecimalCurrency() {
+        // given
+        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
+        ClientDetails clientDetails = TestDataFactory.createClientDetails();
+        Decimal unitPrice = 5.5555; // Example unit price with three decimal places
+        String currencyIsoCode = 'JOD'; // Example currency code with three decimal places
+        WebCart webCart = new WebCart(CurrencyIsoCode = currencyIsoCode);
+
+        String jsonString = JSON.serialize(webCart);
+        Map<String,Object> dataMap = (Map<String,Object>)JSON.deserializeUntyped(jsonString);
+        dataMap.put('GrandTotalAmount', unitPrice);
+        jsonString = JSON.serialize(dataMap);
+        webCart = (WebCart)JSON.deserialize(jsonString, WebCart.class);
+
+        // when
+        Test.startTest();
+        PaymentsRequest paymentsRequest = AdyenDropInController.buildPaymentsRequest(clientDetails, webCart, adyenAdapter);
+        Test.stopTest();
+
+        // then
+        Assert.areEqual(adyenAdapter.Merchant_Account__c, paymentsRequest.merchantAccount);
+        Assert.areEqual(webCart.Id, paymentsRequest.reference);
+        Assert.areEqual(webCart.OwnerId, paymentsRequest.shopperReference);
+        Assert.areEqual(webCart.CurrencyIsoCode, paymentsRequest.amount.currency_x);
+
+        // Calculate expected value with three decimal places
+        Long expectedValue = (webCart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(webCart.CurrencyIsoCode)).round(RoundingMode.HALF_UP);
+        Assert.isTrue(paymentsRequest.returnUrl.contains('/checkout'));
+        Assert.areEqual(expectedValue, paymentsRequest.amount.value);
+        Assert.areEqual('NL', paymentsRequest.billingAddress.country);
+        Assert.areEqual('Rotterdam', paymentsRequest.billingAddress.city);
+        Assert.areEqual('3012 AH', paymentsRequest.billingAddress.postalCode);
+        Assert.areEqual('en-US', paymentsRequest.browserInfo.language);
+        Assert.areEqual('*/*', paymentsRequest.browserInfo.acceptHeader);
+        Assert.areEqual('web', paymentsRequest.channel);
+        Assert.areEqual(Url.getOrgDomainUrl().toExternalForm(), paymentsRequest.origin);
+    }
 }
