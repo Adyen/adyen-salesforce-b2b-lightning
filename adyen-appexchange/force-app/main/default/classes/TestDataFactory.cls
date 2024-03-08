@@ -6,7 +6,6 @@ public without sharing class TestDataFactory {
         ClientDetails clientDetails = new ClientDetails();
         clientDetails.paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
         clientDetails.paymentMethod = TestDataFactory.getPaymentMethodBody(clientDetails.paymentMethodType, 'Tester');
-        clientDetails.urlPath = '/checkout';
         clientDetails.billingAddress = TestDataFactory.getBillingAddress();
         clientDetails.browserInfo = TestDataFactory.getBrowserInfo();
         clientDetails.adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;

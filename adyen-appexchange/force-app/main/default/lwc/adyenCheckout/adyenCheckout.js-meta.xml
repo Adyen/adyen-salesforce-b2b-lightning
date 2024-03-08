@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>59.0</apiVersion>
+    <apiVersion>60.0</apiVersion>
     <description>Adyen Checkout</description>
     <isExposed>true</isExposed>
     <masterLabel>Adyen Checkout</masterLabel>
@@ -15,12 +15,6 @@
                     name="adyenAdapter"
                     type="String"
                     default="AdyenDefault"
-            />
-            <property
-                    label="URL path"
-                    name="urlPath"
-                    type="String"
-                    default="/checkout"
             />
             <property
                     label="Adyen Environment"

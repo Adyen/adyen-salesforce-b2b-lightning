@@ -72,7 +72,7 @@ public with sharing class AdyenDropInController {
         paymentsRequest.reference = cart.Id;
         paymentsRequest.shopperReference = cart.OwnerId;
         paymentsRequest.shopperEmail = UserInfo.getUserEmail();
-        paymentsRequest.returnUrl = AdyenB2BUtils.getSiteUrl() + clientDetails.urlPath;
+        paymentsRequest.returnUrl = AdyenB2BUtils.getSiteUrl() + '/payment-processing';
         paymentsRequest.billingAddress = clientDetails.getCompatibleBillingAddress();
         paymentsRequest.browserInfo = clientDetails.getBrowserInfo();
         paymentsRequest.applicationInfo = AdyenB2BUtils.getApplicationInfo(adyenAdapter.System_Integrator_Name__c);

@@ -11,8 +11,6 @@ public with sharing class ClientDetails {
     public String billingAddress { get; set; }
     @AuraEnabled
     public CardData cardData { get; set; }
-    @AuraEnabled
-    public String urlPath { get; set; }
 
     public Address getCompatibleBillingAddress() {
         return (Address)JSON.deserialize(this.billingAddress, Address.class);
