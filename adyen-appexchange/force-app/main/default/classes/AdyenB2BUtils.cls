@@ -3,7 +3,7 @@ public with sharing class AdyenB2BUtils {
         try {
             return [
                 SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
-                    Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c
+                    Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
                 FROM Adyen_Adapter__mdt
                 WHERE DeveloperName = :adyenAdapterName
                 WITH SECURITY_ENFORCED
