@@ -35,7 +35,7 @@ private class AdyenB2BUtilsTest {
             Test.stopTest();
             Assert.fail();
         } catch (Exception ex) { // then
-            Assert.isInstanceOfType(ex, AuraHandledException.class);
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
         }
     }
 
@@ -66,5 +66,77 @@ private class AdyenB2BUtilsTest {
         // then
         Assert.isNotNull(checkoutURL);
         Assert.isTrue(checkoutURL.contains('.com'));
+    }
+
+    @IsTest(SeeAllData=true)
+    private static void fetchCartDetailsTest() {
+        // given
+        Decimal unitPrice = 10.99;
+        String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
+        WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
+        User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
+        // when
+        WebCart cart;
+        System.runAs(buyerUser) {
+            WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, 1);
+            webCart.Status = 'Checkout';
+            update webCart;
+            Test.startTest();
+            cart = AdyenB2BUtils.fetchCartDetails();
+            Test.stopTest();
+        }
+        // then
+        Assert.isNotNull(cart);
+        Assert.areEqual(unitPrice, cart.GrandTotalAmount);
+    }
+
+    @IsTest
+    private static void isPaymentAcceptedTest() {
+        // given authorised
+        PaymentsResponse.ResultCodeEnum paymentResultCode = PaymentsResponse.ResultCodeEnum.AUTHORISED;
+        // when
+        Boolean paymentSuccessful = AdyenB2BUtils.isPaymentAccepted(paymentResultCode);
+        // then
+        Assert.isTrue(paymentSuccessful);
+
+        // given pending
+        paymentResultCode = PaymentsResponse.ResultCodeEnum.PENDING;
+        // when
+        paymentSuccessful = AdyenB2BUtils.isPaymentAccepted(paymentResultCode);
+        // then
+        Assert.isTrue(paymentSuccessful);
+
+        // given received
+        paymentResultCode = PaymentsResponse.ResultCodeEnum.RECEIVED;
+        // when
+        paymentSuccessful = AdyenB2BUtils.isPaymentAccepted(paymentResultCode);
+        // then
+        Assert.isTrue(paymentSuccessful);
+
+        // given other value
+        paymentResultCode = PaymentsResponse.ResultCodeEnum.CANCELLED;
+        // when
+        paymentSuccessful = AdyenB2BUtils.isPaymentAccepted(paymentResultCode);
+        // then
+        Assert.isFalse(paymentSuccessful);
+    }
+
+    @IsTest
+    private static void safeAssignTextFieldValueTest() {
+        // given
+        String text = 'sample';
+        // when
+        String safeText = AdyenB2BUtils.safeAssignTextFieldValue(text, LogEntry__c.Message__c.getDescribe());
+        // then
+        Assert.areEqual(text, safeText);
+
+        // given a very long text
+        Integer messageFieldSize = LogEntry__c.Message__c.getDescribe().getLength();
+        String longText = 'a very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long text';
+        // when
+        safeText = AdyenB2BUtils.safeAssignTextFieldValue(longText, LogEntry__c.Message__c.getDescribe());
+        // then
+        Assert.areNotEqual(longText, safeText);
+        Assert.areEqual(messageFieldSize, safeText.length());
     }
 }

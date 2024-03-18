@@ -111,15 +111,13 @@ private class AdyenWebhookBatchTest {
         insert paymentGatewayLog;
         AdyenWebhookBatch adyenWebhookBatch = new AdyenWebhookBatch();
         adyenWebhookBatch.exceptions.add(new AuraHandledException('test exception'));
-        adyenWebhookBatch.sendEmailToTheseAddresses.add('danilo.cardoso@adyen.com');
-        adyenWebhookBatch.sendNotificationToTheseUsers.add(UserInfo.getUserId());
         // when
         Test.startTest();
         Database.executeBatch(adyenWebhookBatch);
         Test.stopTest();
         // then
-        paymentGatewayLog = [SELECT InteractionStatus FROM PaymentGatewayLog WHERE Id = :paymentGatewayLog.Id];
-        Assert.isTrue(AdyenB2BConstants.PaymentGatewayLogStatus.INITIATED.name().equalsIgnoreCase(paymentGatewayLog.InteractionStatus));
+        Integer errorLogQuantity = [SELECT COUNT() FROM LogEntry__c WHERE Name = 'Adyen Web Hook Batch Failed'];
+        Assert.areEqual(1, errorLogQuantity);
     }
 
     private static PaymentGatewayLog createAuthLog(String pspReference, String result) {

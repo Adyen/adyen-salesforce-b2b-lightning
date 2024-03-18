@@ -2,11 +2,6 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
     public List<Exception> exceptions = new List<Exception>();
     public String additionalQueryFilters;
     public String orderByClause;
-    public List<String> sendEmailToTheseAddresses = new List<String>();
-    public Set<String> sendNotificationToTheseUsers = new Set<String>();
-    public Id organizationWideEmailAddressId;
-    public Boolean sendEmailNotification = true;
-    public Boolean sendBellNotification = true;
 
     public AdyenWebhookBatch() {
         this(null, 'ORDER BY CreatedDate');
@@ -41,36 +36,29 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
                 FROM AsyncApexJob
                 WHERE Id = :bc.getJobId()
             ];
-            if (sendEmailNotification) {
-                sendErrorEmail(asyncJob);
-            }
-            if (sendBellNotification) {
-                sendCustomNotification(asyncJob);
-            }
+            String message = String.format('{0} error(s) found while processing async apex job id {1}', new List<String>{String.valueOf(asyncJob.NumberOfErrors), asyncJob.Id});
+            LogEntry.insertLogError('Adyen Web Hook Batch Failed', null, message, buildBodyFor(exceptions));
         }
     }
 
-    private void sendErrorEmail(AsyncApexJob asyncJob) {
-        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-        String[] toAddresses = sendEmailToTheseAddresses.isEmpty() ? new String[] {asyncJob.CreatedBy.Email} : sendEmailToTheseAddresses;
-        Id senderEmailId = getSenderEmailId(organizationWideEmailAddressId);
-        if (senderEmailId != null) {
-            mail.setOrgWideEmailAddressId(senderEmailId);
-        }
-        mail.setToAddresses(toAddresses);
-        mail.setSubject('Errors occurred during Adyen Webhook batch process.');
-        mail.setHtmlBody(buildHtmlBodyFor(asyncJob, exceptions));
-        Messaging.sendEmail(new Messaging.Email[] { mail });
-    }
+    private static void processRecords(Map<String, PaymentGatewayLog> logMap, List<PaymentAuthorization> authorizations) {
+        List<PaymentGatewayLog> logsToUpdate = new List<PaymentGatewayLog>();
+        List<PaymentAuthorization> authsToUpdate = new List<PaymentAuthorization>();
 
-    private void sendCustomNotification(AsyncApexJob asyncJob) {
-        Messaging.CustomNotification notification = new Messaging.CustomNotification();
-        notification.setTitle('Errors occurred during Adyen Webhook batch process.');
-        notification.setBody(buildBodyFor(exceptions));
-        notification.setNotificationTypeId([SELECT Id FROM CustomNotificationType WHERE DeveloperName = 'Adyen_Webhook_Job_Exception'].Id);
-        notification.setTargetId('000000000000000AAA'); // dummy value
-        Set<String> usersIdToBeNotified = sendNotificationToTheseUsers.isEmpty() ? new Set<String>{asyncJob.CreatedById} : sendNotificationToTheseUsers;
-        notification.send(usersIdToBeNotified);
+        for (PaymentAuthorization auth : authorizations) {
+            PaymentGatewayLog log = logMap.get(auth.GatewayRefNumber);
+            if (auth.Status.equalsIgnoreCase(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name())) {
+                auth.Status = Boolean.valueOf(log.GatewayResultCode) ? AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name() : AdyenB2BConstants.PaymentAuthorizationStatus.FAILED.name();
+                authsToUpdate.add(auth);
+            }
+            log.InteractionStatus = AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name();
+            log.ReferencedEntityId = auth.Id;
+            log.OrderPaymentSummaryId = auth.OrderPaymentSummaryId;
+            logsToUpdate.add(log);
+        }
+
+        update authsToUpdate;
+        update logsToUpdate;
     }
 
     private static String buildQuery(String baseQuery, String filters, String orderBy) {
@@ -96,58 +84,11 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
         ];
     }
 
-    private static void processRecords(Map<String, PaymentGatewayLog> logMap, List<PaymentAuthorization> authorizations) {
-        List<PaymentGatewayLog> logsToUpdate = new List<PaymentGatewayLog>();
-        List<PaymentAuthorization> authsToUpdate = new List<PaymentAuthorization>();
-
-        for (PaymentAuthorization auth : authorizations) {
-            PaymentGatewayLog log = logMap.get(auth.GatewayRefNumber);
-            if (auth.Status.equalsIgnoreCase(AdyenB2BConstants.PaymentAuthorizationStatus.PENDING.name())) {
-                auth.Status = Boolean.valueOf(log.GatewayResultCode) ? AdyenB2BConstants.PaymentAuthorizationStatus.PROCESSED.name() : AdyenB2BConstants.PaymentAuthorizationStatus.FAILED.name();
-                authsToUpdate.add(auth);
-            }
-            log.InteractionStatus = AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name();
-            log.ReferencedEntityId = auth.Id;
-            log.OrderPaymentSummaryId = auth.OrderPaymentSummaryId;
-            logsToUpdate.add(log);
-        }
-
-        update authsToUpdate;
-        update logsToUpdate;
-    }
-
-    private static String buildHtmlBodyFor(AsyncApexJob asyncJob, List<Exception> exceptions) {
-        String emailPlainText = 'The Adyen Webhook batch job processed {0} out of {1} batch(es). </br>';
-        List<Integer> parameters = new List<Integer>{asyncJob.JobItemsProcessed, asyncJob.TotalJobItems};
-        String formattedEmailText = String.format(emailPlainText, parameters);
-        String body = formattedEmailText + '</br><b>' + exceptions.size() + '</b> exception(s) occurred during Adyen Webhook batch processing:<br/><br/>';
-        for (Exception singleException : exceptions) {
-            body += singleException.toString() + '<br/>';
-        }
-        return body;
-    }
-
     private static String buildBodyFor(List<Exception> exceptions) {
         String body = '';
         for (Exception singleException : exceptions) {
-            body += singleException.getMessage();
+            body += singleException.getMessage() + '. Stack Trace: ' + singleException.getStackTraceString() + '\n';
         }
-        if (body.length() > 750) {
-            return body.substring(0, 750);
-        } else {
-            return body;
-        }
+        return body;
     }
-
-    private static Id getSenderEmailId(Id orgWideEmailAddressId) {
-        Id senderEmailId = orgWideEmailAddressId;
-        if (senderEmailId == null) {
-            List<OrgWideEmailAddress> orgWideEmailAddresses = [SELECT Id FROM OrgWideEmailAddress WHERE Purpose = 'DefaultNoreply' LIMIT 1];
-            if (!orgWideEmailAddresses.isEmpty()) {
-                senderEmailId = orgWideEmailAddresses[0].Id;
-            }
-        }
-        return senderEmailId;
-    }
-
 }
