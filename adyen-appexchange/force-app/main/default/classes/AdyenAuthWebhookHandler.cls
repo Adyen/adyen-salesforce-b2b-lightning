@@ -21,7 +21,11 @@ global without sharing class AdyenAuthWebhookHandler {
             } else {
                 return handleMissingPaymentAuthorization(notificationRequestItem, req.requestBody.toString());
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
+            if (ex instanceOf HMACValidator.HMACValidationException){
+                return '[accepted] but not valid notification request';
+            }
             String message = 'an exception happened: ' + ex.getMessage() + '. Stack trace: ' + ex.getStackTraceString();
             return insertLogAndReturnResponse(message, paymentAuthorization, notificationRequestItem, req.requestBody.toString(), AdyenB2BConstants.PaymentGatewayLogStatus.FAILED);
         }
