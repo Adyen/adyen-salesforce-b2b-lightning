@@ -5,9 +5,9 @@ global without sharing class AdyenAuthWebhookHandler {
         PaymentAuthorization paymentAuthorization;
         NotificationRequestItem notificationRequestItem;
         RestRequest req = RestContext.request;
-        HMACValidator validator = new HMACValidator();
-        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
         try {
+            HMACValidator validator = new HMACValidator();
+            Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
             notificationRequestItem = parseAdyenNotificationRequest(req.requestBody.toString());
             if (!Test.isRunningTest() && !validator.validateHMAC(notificationRequestItem, adyenAdapter.HMAC_Key__c)){
                 return '[accepted] but not valid notification request';
