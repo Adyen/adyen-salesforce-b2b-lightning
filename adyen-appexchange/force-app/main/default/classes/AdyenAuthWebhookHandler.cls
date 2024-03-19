@@ -25,9 +25,10 @@ global without sharing class AdyenAuthWebhookHandler {
             System.debug(LoggingLevel.ERROR, ex.getMessage());
             if (ex instanceof HMACValidator.HMACValidationException){
                 return '[accepted] but not valid notification request';
+            } else {
+                LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
+                return '[accepted] but an exception happened';
             }
-            LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
-            return '[accepted] but an exception happened';
         }
     }
 
