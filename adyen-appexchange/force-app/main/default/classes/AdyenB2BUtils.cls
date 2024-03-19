@@ -6,7 +6,6 @@ public with sharing class AdyenB2BUtils {
                 Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
             FROM Adyen_Adapter__mdt
             WHERE DeveloperName = :adyenAdapterName
-            WITH USER_MODE
         ];
     }
 

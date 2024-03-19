@@ -46,7 +46,7 @@ public with sharing class LogEntry {
     }
 
     public static void insertLogException(Exception error, String logName, String className, String methodName, String details) {
-        insertLogException(error, logName, className, methodName, null, null, null);
+        insertLogException(error, logName, className, methodName, null, null, details);
     }
 }
 
