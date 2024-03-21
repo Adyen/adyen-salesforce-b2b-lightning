@@ -132,6 +132,7 @@ private class AdyenAuthWebhookHandlerTest {
         // then
         Assert.isNotNull(response);
         Assert.isTrue(response.containsIgnoreCase('exception'));
+        Assert.areEqual(1, [SELECT COUNT() FROM LogEntry__c WHERE Name = 'Adyen Auth Web Hook Handler Error']);
     }
 
     private static RestRequest createRestRequest() {

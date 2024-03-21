@@ -1,22 +1,27 @@
 public with sharing class AdyenB2BUtils {
+    public class AdyenCustomException extends Exception {}
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
-        try {
-            return [
-                SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
-                    Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
-                FROM Adyen_Adapter__mdt
-                WHERE DeveloperName = :adyenAdapterName
-                WITH SECURITY_ENFORCED
-            ];
-        } catch (Exception ex) {
-            throw new AuraHandledException('Could not find adyen adapter with name: ' + adyenAdapterName + '. Error: ' + ex.getMessage());
-        }
+        return [
+            SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
+            FROM Adyen_Adapter__mdt
+            WHERE DeveloperName = :adyenAdapterName
+        ];
+    }
+
+    public static WebCart fetchCartDetails() {
+        return [
+            SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
+            FROM WebCart
+            WHERE OwnerId = :UserInfo.getUserId() AND Status = 'Checkout'
+            WITH USER_MODE
+        ];
     }
 
     public static String getSiteUrl() {
         Id networkId = Network.getNetworkId();
         if (!Test.isRunningTest() && networkId == null ) {
-            throw new AuraHandledException('Could not get site URL');
+            throw new AdyenCustomException('Could not get site URL');
         }
         String networkLoginUrl = Test.isRunningTest() ? Url.getOrgDomainUrl().toExternalForm() + '/login' : Network.getLoginUrl(networkId);
         String networkSiteUrl = networkLoginUrl.removeEnd('/login');
@@ -32,19 +37,14 @@ public with sharing class AdyenB2BUtils {
         req.setBody(compatibleBody);
         HttpResponse response = new Http().send(req);
         if (response.getStatusCode() != 200) {
-            throw new AuraHandledException('API returned: ' + response.getStatusCode());
+            throw new AdyenCustomException('Adyen API returned: ' + response.getStatusCode());
         } else {
             return response;
         }
     }
 
     private static String buildEndpoint(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName) {
-        try {
-            return adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.get(endpointFieldName);
-        } catch (Exception ex) {
-            throw new AuraHandledException('Could not build endpoint with field: ' + endpointFieldName + '. Error: ' + ex.getMessage());
-        }
-
+        return adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.get(endpointFieldName);
     }
 
     private static String makeAdyenCompatible(String input) {
@@ -83,5 +83,30 @@ public with sharing class AdyenB2BUtils {
         applicationInfo.adyenLibrary = adyenLibrary;
 
         return applicationInfo;
+    }
+
+    public static Boolean isPaymentAccepted(PaymentsResponse.ResultCodeEnum paymentResultCode) {
+        switch on paymentResultCode {
+            when AUTHORISED, PENDING, RECEIVED {
+                return true;
+            }
+            when else {
+                return false;
+            }
+        }
+    }
+
+    public static String truncateText(String text, Integer maxLength) {
+        if (String.isBlank(text) || maxLength == null || maxLength < 1) {
+            return null;
+        } else if (text.length() > maxLength) {
+            return text.substring(0, maxLength);
+        } else {
+            return text;
+        }
+    }
+
+    public static String safeAssignTextFieldValue(String text, Schema.DescribeFieldResult describeFieldResult) {
+        return truncateText(text, describeFieldResult.getLength());
     }
 }

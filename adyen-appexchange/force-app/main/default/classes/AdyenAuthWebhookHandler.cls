@@ -21,13 +21,14 @@ global without sharing class AdyenAuthWebhookHandler {
             } else {
                 return handleMissingPaymentAuthorization(notificationRequestItem, req.requestBody.toString());
             }
-        }
-        catch (Exception ex) {
-            if (ex instanceOf HMACValidator.HMACValidationException){
+        } catch (Exception ex) {
+            System.debug(LoggingLevel.ERROR, ex.getMessage());
+            if (ex instanceof HMACValidator.HMACValidationException){
                 return '[accepted] but not valid notification request';
+            } else {
+                LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
+                return '[accepted] but an exception happened';
             }
-            String message = 'an exception happened: ' + ex.getMessage() + '. Stack trace: ' + ex.getStackTraceString();
-            return insertLogAndReturnResponse(message, paymentAuthorization, notificationRequestItem, req.requestBody.toString(), AdyenB2BConstants.PaymentGatewayLogStatus.FAILED);
         }
     }
 
@@ -129,10 +130,6 @@ global without sharing class AdyenAuthWebhookHandler {
             return '[accepted]';
         }
         String messageWithBut = '[accepted] but ' + message;
-        if (messageWithBut.length() > 255) {
-            return messageWithBut.substring(0, 255);
-        } else {
-            return messageWithBut;
-        }
+        return AdyenB2BUtils.safeAssignTextFieldValue(messageWithBut, PaymentGatewayLog.GatewayMessage.getDescribe());
     }
 }
