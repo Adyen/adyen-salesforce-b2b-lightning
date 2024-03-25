@@ -23,7 +23,7 @@ global without sharing class AdyenAuthWebhookHandler {
             }
         } catch (Exception ex) {
             System.debug(LoggingLevel.ERROR, ex.getMessage());
-            if (ex instanceof HMACValidator.HMACValidationException){
+            if (ex instanceof HMACValidator.HmacValidationException){
                 return '[accepted] but not valid notification request';
             } else {
                 LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
