@@ -22,4 +22,12 @@ public with sharing class AdyenB2BConstants {
             'jcb' => 'JCB',
             'maestro' => 'Maestro'
     };
+
+    public static final Set<String> THREE_DECIMAL_CURRENCIES = new Set<String> {
+            'BHD','IQD','JOD','KWD','LWD','OMR','TND'
+    };
+    public static final Set<String> ZERO_DECIMAL_CURRENCIES  = new Set<String> {
+            'CVE', 'DJF', 'GNF', 'IDR', 'JPY', 'KMF', 'KRW',
+            'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+    };
 }

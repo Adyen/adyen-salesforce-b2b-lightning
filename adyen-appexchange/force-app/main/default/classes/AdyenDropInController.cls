@@ -77,7 +77,7 @@ public with sharing class AdyenDropInController {
     @TestVisible
     private static PaymentsRequest buildPaymentsRequest(ClientDetails clientDetails, WebCart cart, Adyen_Adapter__mdt adyenAdapter) {
         Amount requestAmount = new Amount();
-        requestAmount.value = (cart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(cart.CurrencyIsoCode)).round(System.RoundingMode.HALF_UP);
+        requestAmount.value = (cart.GrandTotalAmount * AdyenB2BUtils.getAmountMultiplier(cart.CurrencyIsoCode)).round(System.RoundingMode.HALF_UP);
         requestAmount.currency_x = cart.CurrencyIsoCode;
 
         PaymentsRequest paymentsRequest = new PaymentsRequest();

@@ -47,17 +47,40 @@ public with sharing class AdyenB2BUtils {
         return adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.get(endpointFieldName);
     }
 
-    private static String makeAdyenCompatible(String input) {
+    public static String makeAdyenCompatible(String input) {
         Map<String, String> mapKeyToReplace = new Map<String, String> {
                 'currency_x' => 'currency',
                 'number_x' => 'number',
                 'group_x' => 'group'
         };
+        return replaceAttributeName(input, mapKeyToReplace);
+    }
+
+    public static String makeSalesforceCompatible(String input) {
+        Map<String, String> mapKeyToReplace = new Map<String, String>{
+                'currency' => 'currency_x',
+                'number' => 'number_x',
+                'group' => 'group_x'
+        };
+        return replaceAttributeName(input, mapKeyToReplace);
+    }
+
+    private static String replaceAttributeName(String input, Map<String,String> fromKeyToValueMap) {
         String output = input;
-        for (String key : mapKeyToReplace.keySet()) {
-            output = output.replace(key, mapKeyToReplace.get(key));
+        for (String key : fromKeyToValueMap.keySet()) {
+            output = output.replace(key, fromKeyToValueMap.get(key));
         }
         return output;
+    }
+
+    public static Integer getAmountMultiplier(String currencyCode) {
+        if (AdyenB2BConstants.THREE_DECIMAL_CURRENCIES.contains(currencyCode)) {
+            return 1000;
+        }
+        if (AdyenB2BConstants.ZERO_DECIMAL_CURRENCIES.contains(currencyCode)) {
+            return 1;
+        }
+        return 100;
     }
 
     public static Id fetchAdyenGatewayId() {

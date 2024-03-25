@@ -33,8 +33,8 @@ global without sharing class AdyenAuthWebhookHandler {
     }
 
     private static NotificationRequestItem parseAdyenNotificationRequest(String requestBody) {
-        String requestBodySFCompatible = AdyenPaymentUtility.makeSalesforceCompatible(requestBody);
-        AdyenNotification adyenNotification  = (AdyenNotification) JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
+        String requestBodySFCompatible = AdyenB2BUtils.makeSalesforceCompatible(requestBody);
+        AdyenNotification adyenNotification  = (AdyenNotification)JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
         NotificationRequestItem notificationRequestItem = adyenNotification.notificationItems[0].NotificationRequestItem;
         return notificationRequestItem;
     }

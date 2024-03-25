@@ -139,4 +139,28 @@ private class AdyenB2BUtilsTest {
         Assert.areNotEqual(longText, safeText);
         Assert.areEqual(messageFieldSize, safeText.length());
     }
+
+    @IsTest
+    private static void getAmountMultiplierTest() {
+        // given 3 decimal places currency
+        String currencyCode = 'JOD';
+        // when
+        Integer multiplier = AdyenB2BUtils.getAmountMultiplier(currencyCode);
+        // then
+        Assert.areEqual(1000, multiplier);
+
+        // given 0 decimal place currency
+        currencyCode = 'JPY';
+        // when
+        multiplier = AdyenB2BUtils.getAmountMultiplier(currencyCode);
+        // then
+        Assert.areEqual(1, multiplier);
+
+        // given 0 decimal place currency
+        currencyCode = 'USD';
+        // when
+        multiplier = AdyenB2BUtils.getAmountMultiplier(currencyCode);
+        // then
+        Assert.areEqual(100, multiplier);
+    }
 }
