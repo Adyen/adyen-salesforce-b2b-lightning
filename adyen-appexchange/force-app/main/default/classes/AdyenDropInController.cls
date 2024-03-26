@@ -3,12 +3,24 @@ public with sharing class AdyenDropInController {
 
     @AuraEnabled
     public static PaymentMethodsAndClientKey fetchPaymentMethods(String adyenAdapterName) {
+        WebCart cart;
         try {
             Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
+            cart = AdyenB2BUtils.fetchCartDetails();
+            Amount requestAmount = new Amount();
+            requestAmount.value = (cart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(cart.CurrencyIsoCode)).round(System.RoundingMode.HALF_UP);
+            requestAmount.currency_x = cart.CurrencyIsoCode;
+            String shopperLocale = UserInfo.getLocale();
+            String[] localeParts = shopperLocale.split('_');
+            String countryCode = localeParts.size() > 1 ? localeParts[1] : '';
             PaymentMethodsRequest paymentMethodsRequest = new PaymentMethodsRequest();
+            
             paymentMethodsRequest.merchantAccount = adyenAdapter.Merchant_Account__c;
+            paymentMethodsRequest.amount = requestAmount;
             paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE};
             paymentMethodsRequest.blockedPaymentMethods = new List<String>{AdyenB2BConstants.BANCONTACT_CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE};
+            paymentMethodsRequest.shopperLocale = shopperLocale;
+            paymentMethodsRequest.countryCode = countryCode;
             HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payment_Methods_Endpoint__c', JSON.serialize(paymentMethodsRequest));
             PaymentMethodsAndClientKey paymentMethodsAndClientKey = new PaymentMethodsAndClientKey(result.getBody(), adyenAdapter.Client_Key__c);
             return paymentMethodsAndClientKey;
