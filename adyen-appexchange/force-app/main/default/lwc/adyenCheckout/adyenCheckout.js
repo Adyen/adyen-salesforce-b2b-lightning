@@ -8,6 +8,8 @@ import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent, placeOrder } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
+import paymentNotAuthorized from "@salesforce/label/c.Payment_not_authorized";
+import missingCardDetails from "@salesforce/label/c.Card_details_must_be_filled";
 
 const CheckoutStage = {
     CHECK_VALIDITY_UPDATE: 'CHECK_VALIDITY_UPDATE',
@@ -34,6 +36,8 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     rejectPayment;
     redirectResult;
     notYetExecuted = true;
+    labels = { paymentNotAuthorized, missingCardDetails };
+
 
     @wire(CurrentPageReference)
     async wiredPagRef(currentPageReference) {
@@ -73,9 +77,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         });
         if (!this.dropInIsValid || !cardDataIsFilled) {
             this.dispatchUpdateErrorAsync({
-                groupId: 'Card details',
+                groupId: 'CardDetails',
                 type: '/commerce/errors/checkout-failure',
-                exception: 'Card details must be filled in.',
+                exception: this.labels.missingCardDetails,
             });
         }
         return cardDataIsFilled;
@@ -122,7 +126,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     handleError(error) {
-        console.error(error);
         this.error = error;
     }
 
@@ -227,7 +230,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         } else if (response.paymentSuccessful) {
             await this.handleSuccessfulPayment();
         } else {
-            this.handleFailedPayment('not_authorized');
+            await this.handleFailedPayment('not_authorized');
         }
     }
 
@@ -240,18 +243,23 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
 
-    handleFailedPayment(errorMsg) {
-        console.error('failed payment', errorMsg);
+    async handleFailedPayment(errorMsg) {
         if (this.mountedDropIn) {
             this.dispatchUpdateErrorAsync({
-                groupId: 'Payment processing',
+                groupId: 'PaymentProcessing',
                 type: '/commerce/errors/checkout-failure',
-                exception: 'Payment failed with: ' + errorMsg,
+                exception: this.labels.paymentNotAuthorized,
             });
             this.rejectPayment(false);
+            this.remountDropIn();
         } else {
             this.navigateToErrorPage(errorMsg);
         }
+    }
+
+    remountDropIn() {
+        this.mountedDropIn.unmount();
+        this.mountedDropIn = this.adyenCheckout.create('dropin').mount('#dropin-container');
     }
 
     navigateToConfirmationPage(placeOrderResult) {
