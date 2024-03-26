@@ -1,13 +1,18 @@
 @IsTest
 private class AdyenDropInControllerTest {
-    @IsTest
+    @IsTest(SeeAllData=true)
     private static void fetchPaymentMethodsSuccessTest() {
         // given
+        Decimal unitPrice = 10.99;
+        String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
+        WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
+        User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
         Test.setMock(HttpCalloutMock.class, new TestDataFactory.PaymentMethodsSuccessMock());
         // when
-        Test.startTest();
-        AdyenDropInController.PaymentMethodsAndClientKey paymentMethodsAndClientKey = AdyenDropInController.fetchPaymentMethods(AdyenConstants.DEFAULT_ADAPTER_NAME);
-        Test.stopTest();
+        AdyenDropInController.PaymentMethodsAndClientKey paymentMethodsAndClientKey;
+        System.runAs(buyerUser) {
+            paymentMethodsAndClientKey = createCartAndFetchPaymentMethods(webStore.Id);
+        }
         // then
         Assert.isNotNull(paymentMethodsAndClientKey);
         Assert.isNotNull(paymentMethodsAndClientKey.clientKey);
@@ -204,6 +209,16 @@ private class AdyenDropInControllerTest {
         update webCart;
         Test.startTest();
         AdyenDropInController.MinimalPaymentResponse response = AdyenDropInController.makePayment(TestDataFactory.createClientDetails());
+        Test.stopTest();
+        return response;
+    }
+
+    private static AdyenDropInController.PaymentMethodsAndClientKey createCartAndFetchPaymentMethods(Id webStoreId) {
+        WebCart webCart = TestDataFactory.createCartWithOneItem(webStoreId, 1);
+        webCart.Status = 'Checkout';
+        update webCart;
+        Test.startTest();
+        AdyenDropInController.PaymentMethodsAndClientKey response  = AdyenDropInController.fetchPaymentMethods(AdyenConstants.DEFAULT_ADAPTER_NAME);
         Test.stopTest();
         return response;
     }
