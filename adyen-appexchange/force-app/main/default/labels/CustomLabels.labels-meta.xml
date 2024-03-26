@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Card_details_must_be_filled</fullName>
+        <categories>error,payment,card,details,data</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Card details must be filled</shortDescription>
+        <value>Card details must be filled in.</value>
+    </labels>
+    <labels>
+        <fullName>Payment_not_authorized</fullName>
+        <categories>error,payment,failed</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Payment not authorized</shortDescription>
+        <value>The payment was not authorized.</value>
+    </labels>
+</CustomLabels>
