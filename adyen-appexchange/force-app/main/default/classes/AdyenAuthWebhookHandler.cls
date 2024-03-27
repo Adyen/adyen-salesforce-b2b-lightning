@@ -23,7 +23,7 @@ global without sharing class AdyenAuthWebhookHandler {
             }
         } catch (Exception ex) {
             System.debug(LoggingLevel.ERROR, ex.getMessage());
-            if (ex instanceof HMACValidator.HMACValidationException){
+            if (ex instanceof HMACValidator.HmacValidationException){
                 return '[accepted] but not valid notification request';
             } else {
                 LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
@@ -33,8 +33,8 @@ global without sharing class AdyenAuthWebhookHandler {
     }
 
     private static NotificationRequestItem parseAdyenNotificationRequest(String requestBody) {
-        String requestBodySFCompatible = AdyenPaymentUtility.makeSalesforceCompatible(requestBody);
-        AdyenNotification adyenNotification  = (AdyenNotification) JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
+        String requestBodySFCompatible = AdyenB2BUtils.makeSalesforceCompatible(requestBody);
+        AdyenNotification adyenNotification  = (AdyenNotification)JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
         NotificationRequestItem notificationRequestItem = adyenNotification.notificationItems[0].NotificationRequestItem;
         return notificationRequestItem;
     }

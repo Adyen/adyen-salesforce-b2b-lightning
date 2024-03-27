@@ -121,7 +121,7 @@ private class AdyenDropInControllerTest {
         Assert.areEqual(webCart.Id, paymentsRequest.reference);
         Assert.areEqual(webCart.OwnerId, paymentsRequest.shopperReference);
         Assert.areEqual(webCart.CurrencyIsoCode, paymentsRequest.amount.currency_x);
-        Long expectedValue = (webCart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(webCart.CurrencyIsoCode)).longValue();
+        Long expectedValue = (webCart.GrandTotalAmount * AdyenB2BUtils.getAmountMultiplier(webCart.CurrencyIsoCode)).longValue();
         Assert.isTrue(paymentsRequest.returnUrl.contains('/payment-processing'));
         Assert.areEqual(expectedValue, paymentsRequest.amount.value);
         Assert.areEqual('NL', paymentsRequest.billingAddress.country);
@@ -189,7 +189,7 @@ private class AdyenDropInControllerTest {
         Test.stopTest();
 
         // Calculate expected value with three decimal places
-        Long expectedValue = (webCart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(webCart.CurrencyIsoCode)).round(RoundingMode.HALF_UP);
+        Long expectedValue = (webCart.GrandTotalAmount * AdyenB2BUtils.getAmountMultiplier(webCart.CurrencyIsoCode)).round(RoundingMode.HALF_UP);
         Assert.areEqual(expectedValue, paymentsRequest.amount.value);
     }
 
