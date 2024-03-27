@@ -12,10 +12,4 @@ private class AdyenAsyncAdapterTest {
         // then
         Assert.isTrue(postAuthResponse.toString().contains('success'));
     }
-
-    @IsTest
-    static void processNotificationTest() {
-        AdyenAsyncAdapter adapter = new AdyenAsyncAdapter();
-        Assert.isNull(adapter.processNotification(null));
-    }
 }
