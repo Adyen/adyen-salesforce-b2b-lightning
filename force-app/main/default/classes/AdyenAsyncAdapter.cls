@@ -6,7 +6,7 @@
  *
  *  @see AdyenPaymentHelper
  */
-global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentGatewayAdapter {
+global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentGatewayAdapter, CommercePayments.PaymentGatewayAsyncAdapter {
 
     global AdyenAsyncAdapter() {}
   
@@ -19,6 +19,10 @@ global with sharing class AdyenAsyncAdapter implements CommercePayments.PaymentG
     */
     global CommercePayments.GatewayResponse processRequest(CommercePayments.PaymentGatewayContext paymentGatewayContext) {
         return AdyenPaymentHelper.handleFulfillmentOrderStatusChange(paymentGatewayContext);
+    }
+
+    global CommercePayments.GatewayNotificationResponse processNotification(CommercePayments.PaymentGatewayNotificationContext gatewayNotificationContext) {
+        return null;
     }
 
     public class GatewayException extends Exception {}

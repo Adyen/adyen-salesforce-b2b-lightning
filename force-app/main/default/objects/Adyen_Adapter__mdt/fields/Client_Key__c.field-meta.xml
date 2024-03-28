@@ -7,7 +7,7 @@
     <inlineHelpText>Can be found at the customer area</inlineHelpText>
     <label>Client Key</label>
     <length>255</length>
-    <required>true</required>
+    <required>false</required>
     <type>Text</type>
     <unique>false</unique>
 </CustomField>

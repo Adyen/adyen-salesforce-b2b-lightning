@@ -1,7 +1,7 @@
 {
   "orgName": "Adyen",
   "edition": "Developer",
-  "features": ["MultiCurrency","Communities", "B2BCommerce", "EnableSetPasswordInApi"],
+  "features": ["MultiCurrency", "Communities", "Sites", "B2BCommerce", "EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true

@@ -13,7 +13,7 @@ public with sharing class AdyenB2BUtils {
         return [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
-            WHERE OwnerId = :UserInfo.getUserId() AND Status = 'Checkout'
+            WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')
             WITH USER_MODE
         ];
     }
