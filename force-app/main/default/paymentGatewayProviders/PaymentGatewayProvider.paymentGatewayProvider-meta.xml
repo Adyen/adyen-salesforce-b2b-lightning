@@ -3,6 +3,5 @@
     <apexAdapter>AdyenAsyncAdapter</apexAdapter>
     <idempotencySupported>Yes</idempotencySupported>
     <masterLabel>CommercePaymentsAdyenAsyncAdapter</masterLabel>
-    <!-- <isProtected>true</isProtected> -->
     <comments>Comments</comments>
 </PaymentGatewayProvider>

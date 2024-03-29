@@ -4,10 +4,6 @@
         <apexClass>AdyenDropInController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <externalCredentialPrincipalAccesses>
-        <enabled>true</enabled>
-        <externalCredentialPrincipal>AdyenAuth-Api Key Principal</externalCredentialPrincipal>
-    </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>false</editable>
         <field>LogEntry__c.Cart__c</field>
