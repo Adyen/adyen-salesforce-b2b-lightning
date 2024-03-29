@@ -20,7 +20,7 @@ private class ClientDetailsTest {
             paymentMethodDetails = clientDetails.getPaymentMethodDetails();
             Assert.fail();
         } catch (Exception ex) { // then
-            Assert.isInstanceOfType(ex, AuraHandledException.class);
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
         }
 
         // given - weird body
@@ -30,7 +30,7 @@ private class ClientDetailsTest {
             paymentMethodDetails = clientDetails.getPaymentMethodDetails();
             Assert.fail();
         } catch (Exception ex) { // then
-            Assert.isInstanceOfType(ex, AuraHandledException.class);
+            Assert.isInstanceOfType(ex, System.JSONException.class);
         }
     }
 

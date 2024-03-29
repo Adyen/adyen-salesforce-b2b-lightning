@@ -84,7 +84,9 @@ public with sharing class AdyenB2BUtils {
     }
 
     public static Id fetchAdyenGatewayId() {
-        return [SELECT Id FROM PaymentGateway WHERE PaymentGatewayName = :AdyenB2BConstants.DEFAULT_PAYMENT_GATEWAY_NAME].Id;
+        return Test.isRunningTest() ?
+            null :
+            [SELECT Id FROM PaymentGateway WHERE PaymentGatewayName = :AdyenB2BConstants.DEFAULT_PAYMENT_GATEWAY_NAME].Id;
     }
 
     public static ApplicationInfo getApplicationInfo(String systemIntegratorName) {

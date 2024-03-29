@@ -21,7 +21,7 @@ public without sharing class TestDataFactory {
     }
 
     public static WebStore setUpWebStore(Decimal unitPrice, String currencyIsoCode) {
-        WebStore testWebStore = new WebStore(Name = 'TestWebStore', DefaultLanguage = 'en_US');
+        WebStore testWebStore = new WebStore(Name = 'TestWebStore');
         insert testWebStore;
 
         Product2 product = createProductInStore(unitPrice, currencyIsoCode, testWebStore.Id);
@@ -178,8 +178,12 @@ public without sharing class TestDataFactory {
         Contact buyerContact = new Contact(LastName = 'Test', AccountId = buyerAccountId);
         insert buyerContact;
 
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        System.runAs (thisUser) {
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator'];
+        System.runAs (adminUser) {
+            UserRole role = new UserRole(DeveloperName = 'MyCustomRole', Name = 'My Role');
+            insert role;
+            adminUser.UserRoleId = role.Id;
+            update adminUser;
             makeBuyerUser(buyerContact.Id, buyerAccountId);
         }
 
