@@ -31,7 +31,7 @@ public with sharing class AdyenB2BUtils {
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
         String compatibleBody = makeAdyenCompatible(body);
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('callout:AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
+        req.setEndpoint('callout:adyen_payment__AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
         req.setMethod('POST');
         req.setHeader('Content-Type', 'application/json');
         req.setBody(compatibleBody);
