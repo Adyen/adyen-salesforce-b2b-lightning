@@ -17,14 +17,10 @@ public with sharing class ClientDetails {
     }
 
     public PaymentMethodDetails getPaymentMethodDetails() {
-        try {
-            if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
-                return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
-            } else {
-                throw new AuraHandledException('Unhandled payment method of type: ' + paymentMethodType);
-            }
-        } catch (Exception ex) {
-            throw new AuraHandledException('Error deserializing payment method: ' + ex.getMessage());
+        if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
+            return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
+        } else {
+            throw new AdyenB2BUtils.AdyenCustomException('Unhandled payment method of type: ' + paymentMethodType);
         }
     }
 

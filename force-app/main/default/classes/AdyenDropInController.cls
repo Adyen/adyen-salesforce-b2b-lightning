@@ -8,7 +8,7 @@ public with sharing class AdyenDropInController {
             Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
             cart = AdyenB2BUtils.fetchCartDetails();
             Amount requestAmount = new Amount();
-            requestAmount.value = (cart.GrandTotalAmount * AdyenPaymentUtility.getAmountMultiplier(cart.CurrencyIsoCode)).round(System.RoundingMode.HALF_UP);
+            requestAmount.value = (cart.GrandTotalAmount * AdyenB2BUtils.getAmountMultiplier(cart.CurrencyIsoCode)).round(System.RoundingMode.HALF_UP);
             requestAmount.currency_x = cart.CurrencyIsoCode;
             String shopperLocale = UserInfo.getLocale();
             String[] localeParts = shopperLocale.split('_');

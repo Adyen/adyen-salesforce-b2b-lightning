@@ -1,5 +1,5 @@
 @IsTest
-private class AdyenAsyncAdapterTest {
+global class AdyenAsyncAdapterTest {
     @IsTest
     static void processRequestTest() {
         // given a post auth request
@@ -11,5 +11,12 @@ private class AdyenAsyncAdapterTest {
         CommercePayments.GatewayResponse postAuthResponse = (CommercePayments.GatewayResponse)adapter.processRequest(context);
         // then
         Assert.isTrue(postAuthResponse.toString().contains('success'));
+    }
+
+    // legacy global class that cannot be removed
+    global class EchoHttpMock implements HttpCalloutMock {
+        global HttpResponse respond(HttpRequest req) {
+            return null;
+        }
     }
 }

@@ -21,7 +21,7 @@ public without sharing class TestDataFactory {
     }
 
     public static WebStore setUpWebStore(Decimal unitPrice, String currencyIsoCode) {
-        WebStore testWebStore = new WebStore(Name = 'TestWebStore', DefaultLanguage = 'en_US');
+        WebStore testWebStore = new WebStore(Name = 'TestWebStore');
         insert testWebStore;
 
         Product2 product = createProductInStore(unitPrice, currencyIsoCode, testWebStore.Id);
@@ -178,8 +178,12 @@ public without sharing class TestDataFactory {
         Contact buyerContact = new Contact(LastName = 'Test', AccountId = buyerAccountId);
         insert buyerContact;
 
-        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
-        System.runAs (thisUser) {
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator'];
+        System.runAs (adminUser) {
+            UserRole role = new UserRole(DeveloperName = 'MyCustomRole', Name = 'My Role');
+            insert role;
+            adminUser.UserRoleId = role.Id;
+            update adminUser;
             makeBuyerUser(buyerContact.Id, buyerAccountId);
         }
 
@@ -363,15 +367,15 @@ public without sharing class TestDataFactory {
     }
 
     public static String mockPaymentsSuccessfulResponse(Id cartId) {
-        return '{"additionalData":{"cvcResult":"1 Matches","fraudResultType":"GREEN","authCode":"090644","avsResult":"5 No AVS data provided","cardBin":"411111","fraudManualReview":"false","aliasType":"Default","paymentMethod":"visa","alias":"H167852639363479","paymentMethodVariant":"visa"},"fraudResult":{"accountScore":50,"results":[{"accountScore":0,"checkId":2,"name":"CardChunkUsage"},{"accountScore":0,"checkId":3,"name":"PaymentDetailUsage"},{"accountScore":0,"checkId":4,"name":"HolderNameUsage"}]},"pspReference":"RCD987QW9HXXGN82","resultCode":"Authorised","amount":{"currency":"EUR","value":49893},"merchantReference":"' + cartId + '","paymentMethod":{"brand":"visa","type":"scheme"}}';
+        return '{"additionalData":{"cvcResult":"1 Matches","fraudResultType":"GREEN","authCode":"090644","avsResult":"5 No AVS data provided","cardBin":"411111","fraudManualReview":"false","aliasType":"Default","paymentMethod":"visa","alias":"H167852639363479","paymentMethodVariant":"visa"},"fraudResult":{"accountScore":50,"results":[{"accountScore":0,"checkId":2,"name":"CardChunkUsage"},{"accountScore":0,"checkId":3,"name":"PaymentDetailUsage"},{"accountScore":0,"checkId":4,"name":"HolderNameUsage"}]},"pspReference":"RCD987QW9HXXGN82","resultCode":"Authorised","amount":{"currency":"' + ACTIVE_CURRENCY + '","value":49893},"merchantReference":"' + cartId + '","paymentMethod":{"brand":"visa","type":"scheme"}}';
     }
 
     public static String mockPaymentsNotAuthorizedResponse(Id cartId) {
-        return '{"additionalData":{"cvcResult":"1 Matches","fraudResultType":"GREEN","authCode":"090644","avsResult":"5 No AVS data provided","cardBin":"411111","fraudManualReview":"false","aliasType":"Default","paymentMethod":"visa","alias":"H167852639363479","paymentMethodVariant":"visa"},"fraudResult":{"accountScore":50,"results":[{"accountScore":0,"checkId":2,"name":"CardChunkUsage"},{"accountScore":0,"checkId":3,"name":"PaymentDetailUsage"},{"accountScore":0,"checkId":4,"name":"HolderNameUsage"}]},"pspReference":"RCD987QW9HXXGN82","resultCode":"Refused","refusalReason":"Refused","amount":{"currency":"EUR","value":49893},"merchantReference":"' + cartId + '","paymentMethod":{"brand":"visa","type":"scheme"}}';
+        return '{"additionalData":{"cvcResult":"1 Matches","fraudResultType":"GREEN","authCode":"090644","avsResult":"5 No AVS data provided","cardBin":"411111","fraudManualReview":"false","aliasType":"Default","paymentMethod":"visa","alias":"H167852639363479","paymentMethodVariant":"visa"},"fraudResult":{"accountScore":50,"results":[{"accountScore":0,"checkId":2,"name":"CardChunkUsage"},{"accountScore":0,"checkId":3,"name":"PaymentDetailUsage"},{"accountScore":0,"checkId":4,"name":"HolderNameUsage"}]},"pspReference":"RCD987QW9HXXGN82","resultCode":"Refused","refusalReason":"Refused","amount":{"currency":"' + ACTIVE_CURRENCY + '","value":49893},"merchantReference":"' + cartId + '","paymentMethod":{"brand":"visa","type":"scheme"}}';
     }
 
     public static String mockWebhookRequest(String eventCode, String pspReference, String webCartId, Boolean success) {
-        return '{"live": "false", "notificationItems": [{"NotificationRequestItem": {"additionalData": {"recurring.recurringDetailReference": "9915692881181044", "recurring.shopperReference": "YOUR_SHOPPER_REFERENCE"}, "amount": {"currency": "EUR", "value": 1000}, "eventCode": "' + eventCode + '", "eventDate": "2021-01-01T01:00:00+01:00", "merchantAccountCode": "YOUR_MERCHANT_ACCOUNT", "merchantReference": "' + webCartId + '", "paymentMethod": "ach", "operations": ["CANCEL", "CAPTURE", "REFUND"], "pspReference": "' + pspReference + '", "reason": "null", "success": "' + success + '"}}]}';
+        return '{"live": "false", "notificationItems": [{"NotificationRequestItem": {"additionalData": {"recurring.recurringDetailReference": "9915692881181044", "recurring.shopperReference": "YOUR_SHOPPER_REFERENCE"}, "amount": {"currency": "'+ ACTIVE_CURRENCY +'", "value": 1000}, "eventCode": "' + eventCode + '", "eventDate": "2021-01-01T01:00:00+01:00", "merchantAccountCode": "YOUR_MERCHANT_ACCOUNT", "merchantReference": "' + webCartId + '", "paymentMethod": "ach", "operations": ["CANCEL", "CAPTURE", "REFUND"], "pspReference": "' + pspReference + '", "reason": "null", "success": "' + success + '"}}]}';
     }
 
     private static String genericErrorResponse() {

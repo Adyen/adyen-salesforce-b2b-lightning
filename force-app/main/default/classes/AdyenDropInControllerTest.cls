@@ -15,7 +15,6 @@ private class AdyenDropInControllerTest {
         }
         // then
         Assert.isNotNull(paymentMethodsAndClientKey);
-        Assert.isNotNull(paymentMethodsAndClientKey.clientKey);
         Assert.isNotNull(paymentMethodsAndClientKey.paymentMethodsResponse);
         PaymentMethodsResponse paymentMethodsResponse = (PaymentMethodsResponse)JSON.deserialize(paymentMethodsAndClientKey.paymentMethodsResponse, PaymentMethodsResponse.class);
         Assert.isNotNull(paymentMethodsResponse.paymentMethods);

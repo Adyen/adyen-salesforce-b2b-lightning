@@ -12,7 +12,7 @@
     </values>
     <values>
         <field>Endpoint_Api_Version__c</field>
-        <value xsi:type="xsd:string">/v68</value>
+        <value xsi:type="xsd:string">/v71</value>
     </values>
     <values>
         <field>Endpoint_Method__c</field>
@@ -25,6 +25,18 @@
     <values>
         <field>Merchant_Account__c</field>
         <value xsi:type="xsd:string">Enter your merchant account name here</value>
+    </values>
+    <values>
+        <field>Payment_Methods_Endpoint__c</field>
+        <value xsi:type="xsd:string">/paymentMethods</value>
+    </values>
+    <values>
+        <field>Payments_Details_Endpoint__c</field>
+        <value xsi:type="xsd:string">/payments/details</value>
+    </values>
+    <values>
+        <field>Payments_Endpoint__c</field>
+        <value xsi:type="xsd:string">/payments</value>
     </values>
     <values>
         <field>Refund_Endpoint__c</field>

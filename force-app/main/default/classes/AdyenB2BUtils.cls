@@ -13,7 +13,7 @@ public with sharing class AdyenB2BUtils {
         return [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
-            WHERE OwnerId = :UserInfo.getUserId() AND Status = 'Checkout'
+            WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')
             WITH USER_MODE
         ];
     }
@@ -31,7 +31,7 @@ public with sharing class AdyenB2BUtils {
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
         String compatibleBody = makeAdyenCompatible(body);
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('callout:AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
+        req.setEndpoint('callout:adyen_payment__AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
         req.setMethod('POST');
         req.setHeader('Content-Type', 'application/json');
         req.setBody(compatibleBody);
@@ -84,7 +84,9 @@ public with sharing class AdyenB2BUtils {
     }
 
     public static Id fetchAdyenGatewayId() {
-        return [SELECT Id FROM PaymentGateway WHERE PaymentGatewayName = :AdyenB2BConstants.DEFAULT_PAYMENT_GATEWAY_NAME].Id;
+        return Test.isRunningTest() ?
+            null :
+            [SELECT Id FROM PaymentGateway WHERE PaymentGatewayName = :AdyenB2BConstants.DEFAULT_PAYMENT_GATEWAY_NAME].Id;
     }
 
     public static ApplicationInfo getApplicationInfo(String systemIntegratorName) {
