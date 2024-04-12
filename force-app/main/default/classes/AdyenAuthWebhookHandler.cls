@@ -60,7 +60,7 @@ global without sharing class AdyenAuthWebhookHandler {
             updatePaymentAuthorizationStatus(paymentAuthorization, notificationRequestItem);
             return insertLogAndReturnResponse(null, paymentAuthorization, notificationRequestItem, requestBody, AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS);
         } else {
-            return insertLogAndReturnResponse('payment is not pending authorization', paymentAuthorization, notificationRequestItem, requestBody, AdyenB2BConstants.PaymentGatewayLogStatus.NOOP);
+            return '[accepted] but payment is not pending authorization';
         }
     }
 
