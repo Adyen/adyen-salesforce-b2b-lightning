@@ -204,10 +204,14 @@ public without sharing class TestDataFactory {
         buyerUser.UserRoleId = userRole.Id;
         update buyerUser;
 
-        PermissionSetAssignment permissionSetAssignment = new PermissionSetAssignment();
-        permissionSetAssignment.AssigneeId = buyerUser.Id;
-        permissionSetAssignment.PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'B2BBuyer'].Id;
-        insert permissionSetAssignment;
+        List<PermissionSetAssignment> permissionSetAssignments = new List<PermissionSetAssignment>();
+        for (PermissionSet permissionSet : [SELECT Id FROM PermissionSet WHERE Name IN ('B2BBuyer', 'Adyen_Checkout_Access')]) {
+            PermissionSetAssignment permissionSetAssignment = new PermissionSetAssignment();
+            permissionSetAssignment.AssigneeId = buyerUser.Id;
+            permissionSetAssignment.PermissionSetId = permissionSet.Id;
+            permissionSetAssignments.add(permissionSetAssignment);
+        }
+        insert permissionSetAssignments;
     }
 
     public static User createUser(Id profileId, Id contactId) {

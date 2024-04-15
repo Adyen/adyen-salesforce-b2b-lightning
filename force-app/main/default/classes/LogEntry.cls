@@ -12,7 +12,7 @@ public with sharing class LogEntry {
         logEntry.Details__c = AdyenB2BUtils.safeAssignTextFieldValue(details, LogEntry__c.Details__c.getDescribe());
         logEntry.StackTrace__c = AdyenB2BUtils.safeAssignTextFieldValue(error?.getStackTraceString(), LogEntry__c.StackTrace__c.getDescribe());
         logEntry.Severity__c = severity == null ? SeverityLevel.ERROR.name() : severity.name();
-        insert logEntry;
+        insert as user logEntry;
     }
 
     public static void insertLogInformation(String logName, Id cartId, String message, String details) {
@@ -33,7 +33,7 @@ public with sharing class LogEntry {
         logEntry.Message__c = AdyenB2BUtils.safeAssignTextFieldValue(message, LogEntry__c.Message__c.getDescribe());
         logEntry.Details__c = AdyenB2BUtils.safeAssignTextFieldValue(details, LogEntry__c.Details__c.getDescribe());
         logEntry.Severity__c = severity.name();
-        insert logEntry;
+        insert as user logEntry;
     }
 
     public static void insertLogException(Exception error, String logName, String className, String methodName, Id cartId) {
