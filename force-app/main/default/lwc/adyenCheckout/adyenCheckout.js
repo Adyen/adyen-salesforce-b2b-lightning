@@ -31,7 +31,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     dropInIsValid = false;
     paymentMethods;
     clientKey;
-    cardData = { holderName: '', brand: '', bin: '', lastFourDigits: ''};
+    cardData = { holderName: '', brand: '', bin: '', lastFourDigits: '' };
     resolvePayment;
     rejectPayment;
     redirectResult;
@@ -51,7 +51,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                 } else {
                     await this.constructAdyenCheckout();
                 }
-            } catch(ex) {
+            } catch (ex) {
                 this.handleError(ex);
             }
         }
@@ -61,10 +61,11 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         this.loading = true;
     }
 
+    // Report validity has to be adjusted as right now it's relavant only for cards.
     stageAction(checkoutStage) {
         switch (checkoutStage) {
-            case CheckoutStage.REPORT_VALIDITY_SAVE:
-                return Promise.resolve(this.reportValidity());
+            // case CheckoutStage.REPORT_VALIDITY_SAVE:
+            //     return Promise.resolve(this.reportValidity());
             case CheckoutStage.PAYMENT:
                 return this.processDropInPayment();
             default:
@@ -157,14 +158,14 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                     holderNameRequired: true,
                     hideCVC: false,
                     onFieldValid: (data) => {
-                        this.cardData.lastFourDigits =  data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
-                        this.cardData.bin =  data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
+                        this.cardData.lastFourDigits = data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
+                        this.cardData.bin = data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
                     },
                     onChange: (data) => {
                         this.dropInIsValid = data.isValid;
                         const paymentMethod = data.data?.paymentMethod;
                         if (paymentMethod) {
-                            this.cardData.holderName = paymentMethod.holderName ?  paymentMethod.holderName : this.cardData.holderName;
+                            this.cardData.holderName = paymentMethod.holderName ? paymentMethod.holderName : this.cardData.holderName;
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
                         }
                     }
@@ -184,7 +185,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                 billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
                 cardData: this.cardData
             }
-            const paymentResponse = await makePayment({clientDetails: clientData});
+            const paymentResponse = await makePayment({ clientDetails: clientData });
             await this.handleResponse(paymentResponse, dropin);
         } catch (error) {
             this.handleError(error);
@@ -196,7 +197,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     async myAdditionalDetails(state, dropin) {
         try {
             this.loading = true;
-            const response = await makeDetailsCall({stateData: state.data, adyenAdapterName: this.adyenAdapter});
+            const response = await makeDetailsCall({ stateData: state.data, adyenAdapterName: this.adyenAdapter });
             await this.handleResponse(response, dropin);
         } catch (error) {
             this.handleError(error);
@@ -212,7 +213,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             if (this.mountedDropIn) {
                 this.mountedDropIn.submit();
             } else {
-                this.adyenCheckout.submitDetails({data: {details: {redirectResult: this.redirectResult}}});
+                this.adyenCheckout.submitDetails({ data: { details: { redirectResult: this.redirectResult } } });
             }
         }).then(result => {
             return result;

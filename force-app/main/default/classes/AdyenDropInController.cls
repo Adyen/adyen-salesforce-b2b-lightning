@@ -17,7 +17,7 @@ public with sharing class AdyenDropInController {
             
             paymentMethodsRequest.merchantAccount = adyenAdapter.Merchant_Account__c;
             paymentMethodsRequest.amount = requestAmount;
-            paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE};
+            paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.SEPA_DIRECT_DEBIT};
             paymentMethodsRequest.blockedPaymentMethods = new List<String>{AdyenB2BConstants.BANCONTACT_CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE};
             paymentMethodsRequest.shopperLocale = shopperLocale;
             paymentMethodsRequest.countryCode = countryCode;
@@ -121,8 +121,15 @@ public with sharing class AdyenDropInController {
         postAuthRequest.effectiveDate = System.now();
         postAuthRequest.paymentGatewayId = AdyenB2BUtils.fetchAdyenGatewayId();
         postAuthRequest.paymentMethod = new ConnectApi.PostAuthApiPaymentMethodRequest();
-        postAuthRequest.paymentMethod.cardPaymentMethod = createCardPayMethodRequest(cardData);
-        postAuthRequest.paymentMethod.cardPaymentMethod.accountId = webCart.AccountId;
+        // We can consider simplifying this if scenario
+        if ((paymentsResp.paymentMethod != null && paymentsResp.paymentMethod.containsKey('type')) && !paymentsResp.paymentMethod.get('type').equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)){
+            postAuthRequest.paymentMethod.alternativePaymentMethod = createAPMPayMethodRequest();
+            postAuthRequest.paymentMethod.alternativePaymentMethod.accountId = webCart.AccountId;
+        }
+        else{
+            postAuthRequest.paymentMethod.cardPaymentMethod = createCardPayMethodRequest(cardData);
+            postAuthRequest.paymentMethod.cardPaymentMethod.accountId = webCart.AccountId;
+        }
         postAuthRequest.paymentGroup = new ConnectApi.PaymentGroupRequest();
         postAuthRequest.paymentGroup.createPaymentGroup = true;
         postAuthRequest.paymentGroup.currencyIsoCode = webCart.CurrencyIsoCode;
@@ -151,6 +158,13 @@ public with sharing class AdyenDropInController {
         cardPaymentMethodRequest.cardType = cardData.getBrandSFCompatible();
         cardPaymentMethodRequest.cardNumber = cardData.fakeFullCardNumber();
         return cardPaymentMethodRequest;
+    }
+
+    private static ConnectApi.AlternativePaymentMethod createAPMPayMethodRequest() {
+        ConnectApi.AlternativePaymentMethod apmRequest = new ConnectApi.AlternativePaymentMethod();
+        apmRequest.gatewayToken = 'test_token'; 
+        apmRequest.gatewayTokenDetails = 'test_token_details';
+        return apmRequest;
     }
 
     private static void updateCartDetails(ConnectApi.PostAuthorizationResponse postAuthorizationResponse, WebCart webCart, Address billingAddress) {

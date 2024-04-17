@@ -19,14 +19,22 @@ public with sharing class ClientDetails {
     public PaymentMethodDetails getPaymentMethodDetails() {
         if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
             return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
+        }
+        else if (paymentMethodType.equalsIgnoreCase('sepadirectdebit')) {
+            return (SepaDirectDebitDetails)JSON.deserialize(paymentMethod, SepaDirectDebitDetails.class);
         } else {
             throw new AdyenB2BUtils.AdyenCustomException('Unhandled payment method of type: ' + paymentMethodType);
         }
     }
 
     public BrowserInfo getBrowserInfo() {
-        return (BrowserInfo)JSON.deserialize(this.browserInfo, BrowserInfo.class);
+        if (this.browserInfo == null) {
+            return new BrowserInfo();
+        } else {
+            return (BrowserInfo) JSON.deserialize(this.browserInfo, BrowserInfo.class);
+        }
     }
+    
 
     public class CardData {
         @AuraEnabled
