@@ -4,7 +4,7 @@
       "path": "force-app",
       "default": true,
       "package": "Adyen Payments for B2B Lightning",
-      "versionName": "version 2.0",
+      "versionName": "version 2.1",
       "versionNumber": "2.1.0.NEXT",
       "definitionFile": "config/project-scratch-def.json",
       "ancestorVersion": "HIGHEST",
