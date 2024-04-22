@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
     <labels>
-        <fullName>Card_details_must_be_filled</fullName>
+        <fullName>Details_Missing_or_Incorrect</fullName>
         <categories>error,payment,card,details,data</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>Card details must be filled</shortDescription>
-        <value>Card details must be filled in.</value>
+        <shortDescription>Details Missing or Incorrect</shortDescription>
+        <value>Payment details are invalid.</value>
     </labels>
     <labels>
         <fullName>Payment_not_authorized</fullName>
