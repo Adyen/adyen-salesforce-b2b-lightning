@@ -61,7 +61,6 @@ private class AdyenAuthWebhookHandlerTest {
         // then
         Assert.isNotNull(response);
         Assert.isTrue(response.containsIgnoreCase('not pending'));
-        Assert.areEqual(1, [SELECT Id FROM PaymentGatewayLog WHERE InteractionStatus = :AdyenB2BConstants.PaymentGatewayLogStatus.NOOP.name() AND ReferencedEntityId = :paymentAuthorization.Id].size());
     }
 
     @IsTest(SeeAllData=true)

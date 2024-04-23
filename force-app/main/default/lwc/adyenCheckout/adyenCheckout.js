@@ -9,7 +9,7 @@ import { useCheckoutComponent, placeOrder } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import paymentNotAuthorized from "@salesforce/label/c.Payment_not_authorized";
-import missingCardDetails from "@salesforce/label/c.Card_details_must_be_filled";
+import missingDetails from "@salesforce/label/c.Details_Missing_or_Incorrect";
 
 const CheckoutStage = {
     CHECK_VALIDITY_UPDATE: 'CHECK_VALIDITY_UPDATE',
@@ -36,7 +36,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     rejectPayment;
     redirectResult;
     notYetExecuted = true;
-    labels = { paymentNotAuthorized, missingCardDetails };
+    labels = { paymentNotAuthorized, missingDetails };
 
 
     @wire(CurrentPageReference)
@@ -73,17 +73,14 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
     reportValidity() {
-        const cardDataIsFilled = Object.values(this.cardData).every(property => {
-            return typeof property === 'string' && property.length > 0;
-        });
-        if (!this.dropInIsValid || !cardDataIsFilled) {
+        if (!this.dropInIsValid) {
             this.dispatchUpdateErrorAsync({
                 groupId: 'CardDetails',
                 type: '/commerce/errors/checkout-failure',
-                exception: this.labels.missingCardDetails,
+                exception: this.labels.missingDetails,
             });
         }
-        return cardDataIsFilled;
+        return this.dropInIsValid;
     }
 
     async constructAdyenCheckout() {

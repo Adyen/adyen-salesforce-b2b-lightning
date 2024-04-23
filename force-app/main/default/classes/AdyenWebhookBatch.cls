@@ -54,6 +54,7 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
             log.InteractionStatus = AdyenB2BConstants.PaymentGatewayLogStatus.SUCCESS.name();
             log.ReferencedEntityId = auth.Id;
             log.OrderPaymentSummaryId = auth.OrderPaymentSummaryId;
+            log.GatewayMessage = '[accepted] and processed by batch job';
             logsToUpdate.add(log);
         }
 
