@@ -102,7 +102,7 @@ public with sharing class AdyenDropInController {
             postAuthRequest.paymentMethod.cardPaymentMethod = createCardPayMethodRequest(clientDetails.cardData);
             postAuthRequest.paymentMethod.cardPaymentMethod.accountId = webCart.AccountId;
         } else {
-            postAuthRequest.paymentMethod.alternativePaymentMethod = createAPMPayMethodRequest();
+            postAuthRequest.paymentMethod.alternativePaymentMethod = createAPMPayMethodRequest(paymentsResp.pspReference);
             postAuthRequest.paymentMethod.alternativePaymentMethod.accountId = webCart.AccountId;
             postAuthRequest.paymentMethod.alternativePaymentMethod.name = clientDetails.paymentMethodType;
         }
@@ -136,10 +136,10 @@ public with sharing class AdyenDropInController {
         return cardPaymentMethodRequest;
     }
 
-    private static ConnectApi.AlternativePaymentMethod createAPMPayMethodRequest() {
+    private static ConnectApi.AlternativePaymentMethod createAPMPayMethodRequest(String pspReference) {
         ConnectApi.AlternativePaymentMethod apmRequest = new ConnectApi.AlternativePaymentMethod();
-        apmRequest.gatewayToken = 'test_token'; 
-        apmRequest.gatewayTokenDetails = 'test_token_details';
+        apmRequest.gatewayToken = pspReference;
+        apmRequest.gatewayTokenDetails = 'PSP reference';
         return apmRequest;
     }
 
