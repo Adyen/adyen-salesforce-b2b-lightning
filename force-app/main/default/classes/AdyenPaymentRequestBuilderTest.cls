@@ -37,7 +37,7 @@ private class AdyenPaymentRequestBuilderTest {
         ClientDetails clientDetails = TestDataFactory.createClientDetails('unhandled');
         clientDetails.paymentMethodType = 'unhandled';
         try {   // when
-            PaymentsRequest paymentsRequest = AdyenPaymentRequestBuilder.create(clientDetails, null, null);
+            AdyenPaymentRequestBuilder.create(clientDetails, null, null);
             Assert.fail();
         } catch (Exception ex) {    // then
             Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
