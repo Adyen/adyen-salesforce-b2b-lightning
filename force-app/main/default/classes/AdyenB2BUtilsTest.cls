@@ -82,7 +82,7 @@ private class AdyenB2BUtilsTest {
             webCart.Status = 'Checkout';
             update webCart;
             Test.startTest();
-            cart = AdyenB2BUtils.fetchCartDetails();
+            cart = AdyenB2BUtils.fetchCartDetails(false);
             Test.stopTest();
         }
         // then

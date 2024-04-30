@@ -19,8 +19,7 @@ public with sharing class ClientDetails {
     public PaymentMethodDetails getPaymentMethodDetails() {
         if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
             return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
-        }
-        else if (paymentMethodType.equalsIgnoreCase('sepadirectdebit')) {
+        } else if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.SEPA_DIRECT_DEBIT)) {
             return (SepaDirectDebitDetails)JSON.deserialize(paymentMethod, SepaDirectDebitDetails.class);
         } else {
             throw new AdyenB2BUtils.AdyenCustomException('Unhandled payment method of type: ' + paymentMethodType);

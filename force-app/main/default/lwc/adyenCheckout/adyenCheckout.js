@@ -37,12 +37,17 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     redirectResult;
     notYetExecuted = true;
     labels = { paymentNotAuthorized, missingDetails };
+    pageRef;
 
+    get isInBuilderMode() {
+        return this.pageRef.state.view === "editor";
+    }
 
     @wire(CurrentPageReference)
     async wiredPagRef(currentPageReference) {
         if (currentPageReference && this.notYetExecuted) {
             this.notYetExecuted = false;
+            this.pageRef = currentPageReference;
             try {
                 this.redirectResult = currentPageReference.state?.redirectResult;
                 if (this.redirectResult) {
@@ -61,17 +66,23 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         this.loading = true;
     }
 
-    // Report validity has to be adjusted as right now it's relavant only for cards.
     stageAction(checkoutStage) {
         switch (checkoutStage) {
-            // case CheckoutStage.REPORT_VALIDITY_SAVE:
-            //     return Promise.resolve(this.reportValidity());
+            case CheckoutStage.CHECK_VALIDITY_UPDATE:
+                return Promise.resolve(this.checkValidity());
+            case CheckoutStage.REPORT_VALIDITY_SAVE:
+                return Promise.resolve(this.reportValidity());
             case CheckoutStage.PAYMENT:
                 return this.processDropInPayment();
             default:
                 return Promise.resolve(true);
         }
     }
+
+    checkValidity() {
+        return this.dropInIsValid;
+    }
+
     reportValidity() {
         if (!this.dropInIsValid) {
             this.dispatchUpdateErrorAsync({
@@ -94,13 +105,12 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
 
-    async handlePaymentInfo() {
-        const paymentInfo = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
-        if (!paymentInfo) {
-            throw new Error('Failed to load payment methods');
-        }
-        this.paymentMethods = JSON.parse(paymentInfo.paymentMethodsResponse);
-        this.clientKey = paymentInfo.clientKey;
+    async getAdyenCheckout() {
+        await Promise.all([
+            this.loadAdyenScripts(),
+            this.handlePaymentMethodsCall()
+        ]);
+        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
     }
 
     async loadAdyenScripts() {
@@ -110,12 +120,13 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         ]);
     }
 
-    async getAdyenCheckout() {
-        await Promise.all([
-            this.loadAdyenScripts(),
-            this.handlePaymentInfo()
-        ]);
-        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
+    async handlePaymentMethodsCall() {
+        const paymentMethodsResponse = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter, builderMode: this.isInBuilderMode });
+        if (!paymentMethodsResponse) {
+            throw new Error('Failed to load payment methods');
+        }
+        this.paymentMethods = JSON.parse(paymentMethodsResponse.paymentMethodsResponse);
+        this.clientKey = paymentMethodsResponse.clientKey;
     }
 
     async getAdyenCheckoutNoPaymentMethods() {
@@ -146,6 +157,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                 }
                 this.myAdditionalDetails(state, dropin);
             },
+            onChange: (state) => {
+                this.dropInIsValid = state.isValid;
+            },
             onError: (error) => {
                 this.handleError(error);
             },
@@ -158,9 +172,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                         this.cardData.lastFourDigits = data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
                         this.cardData.bin = data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
                     },
-                    onChange: (data) => {
-                        this.dropInIsValid = data.isValid;
-                        const paymentMethod = data.data?.paymentMethod;
+                    onChange: (state) => {
+                        this.dropInIsValid = state.isValid;
+                        const paymentMethod = state.data?.paymentMethod;
                         if (paymentMethod) {
                             this.cardData.holderName = paymentMethod.holderName ? paymentMethod.holderName : this.cardData.holderName;
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;

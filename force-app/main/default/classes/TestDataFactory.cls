@@ -2,20 +2,22 @@
 public without sharing class TestDataFactory {
     public static final String ACTIVE_CURRENCY = [SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE LIMIT 1].IsoCode;
 
-    public static ClientDetails createClientDetails() {
+    public static ClientDetails createClientDetails(String type) {
         ClientDetails clientDetails = new ClientDetails();
-        clientDetails.paymentMethodType = AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE;
+        clientDetails.paymentMethodType = type;
         clientDetails.paymentMethod = TestDataFactory.getPaymentMethodBody(clientDetails.paymentMethodType, 'Tester');
         clientDetails.billingAddress = TestDataFactory.getBillingAddress();
         clientDetails.browserInfo = TestDataFactory.getBrowserInfo();
         clientDetails.adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
 
-        ClientDetails.CardData cardData = new ClientDetails.CardData();
-        cardData.brand = 'amex';
-        cardData.holderName = 'Danilo Cardoso';
-        cardData.bin = '123456';
-        cardData.lastFourDigits = '4321';
-        clientDetails.cardData = cardData;
+        if (type.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
+            ClientDetails.CardData cardData = new ClientDetails.CardData();
+            cardData.brand = 'amex';
+            cardData.holderName = 'Danilo Cardoso';
+            cardData.bin = '123456';
+            cardData.lastFourDigits = '4321';
+            clientDetails.cardData = cardData;
+        }
 
         return clientDetails;
     }
@@ -50,6 +52,11 @@ public without sharing class TestDataFactory {
         ConnectApi.CommerceCart.addItemToCart(webStoreId, buyerAccountId, cartSummary.cartId, cartItemInput);
 
         return [SELECT GrandTotalAmount, CurrencyIsoCode, OwnerId FROM WebCart WHERE Id = :cartSummary.cartId];
+    }
+
+    public static WebCart mockCartRecord(Id cartId, Id ownerId, Decimal totalValue) {
+        String mockedCart = '{"attributes":{"type":"WebCart"},"Id":"' + cartId + '","OwnerId":"' + ownerId + '","CurrencyIsoCode":"' + ACTIVE_CURRENCY + '","GrandTotalAmount":' + totalValue + '}';
+        return (WebCart)JSON.deserialize(mockedCart, WebCart.class);
     }
 
     public static Product2 createProductInStore(Decimal value, String currencyIsoCode, Id webStoreId) {
@@ -178,7 +185,7 @@ public without sharing class TestDataFactory {
         Contact buyerContact = new Contact(LastName = 'Test', AccountId = buyerAccountId);
         insert buyerContact;
 
-        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator'];
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator' LIMIT 1];
         System.runAs (adminUser) {
             UserRole role = new UserRole(DeveloperName = 'MyCustomRole', Name = 'My Role');
             insert role;
@@ -355,7 +362,13 @@ public without sharing class TestDataFactory {
     }
 
     public static String getPaymentMethodBody(String type, String name) {
-        return '{"type":"' + type + '","holderName":"' + name + '","encryptedCardNumber":"eyJhbGciOiJSU0EtT0FFUCIsImVuYyI6IkEyNTZDQkMtSFM1MTIiLCJ2ZXJzaW9uIjoiMSJ9.LSQCdHzOCtMV5w1FYF4OXG2TBY5kSSja5wdqvrti-i9SiO7r2FIOr2h9OQFtocfOblhO_oFQHj6i2hseY6Ug9tMGvPc_XwwuTLnx3nOHfSInRF26P6gxeNviXr2V3N41kL6Z3xsI_Za--AeR2PMtggieBZ2efwjNqICaLUl9x7cBb0ov89Os4yl1e9OBgZQDZvWaMfm9UEebuz-wbSqrsO-rzprCAlZ-HeHeKqrflJ9f3PVFuPl0p28T0v9rP8tS5HhG0jrqXKz53bRO_JsmBhvaT9HOT_Xmt9PU6gEPmsZvwgICPMTeYYwUwlHzW_6zNrnoobtw5dxRGlnewdI7Gw.CULhhAX3a9eR1hK6La3_WA.uvMuxIfmMV11QvdCokF8Gv8I2D4dyFELZmIqrtD2CC5fWRjAtfA4jKHshIHTDEyD08cy-6OaqPVvcakGzrplars5Hbr-4TQ4YRL7k_DLhWfGmPPfYv4MFkuOt5k1moT1r4ZSJX7W99-lERmZEnCon3z7Fvc0zQ9o14ow8FhgMdQ4ZrciiQPTAp6RKguye2sZKhmr96dsaWmSeLS_Bw9wvDaWYzkEIT072U41Ym_eZQClFdBaw6O90pSjZHKZtAMJDk41pAu4U1fnHSJfI2e5Zf1MGPtfr2PhI7HsJheTuSTQWcDkJRy7BlIMyzIk2qSh0X0q-FADsGJSNPPc86otA8UFrU7nlbPNAy79YVT3rIUU99JvhAJ3bKUfuTmflHGNMqkleKrNlRGk1yROLU7YQTlR-hLsCfqYUZFpBy471LasPVqKv52mEoG74xKZ4cZ6P8rSDssk5JKVwoqsiqVHmDgSupUBUdXJ-s2R-XItVS6pDdhdPeYDKgsjGV7du1w5CKTMfrkA2EaaAZdAy-l-cU4ORTjlwomIHsOp5VU6RzpiNnSabUZX2160IJ1IHYC_ulY32RCm7JG0HuDLx1rhhjo0sJ1Ost-TS9NDWACXENEVf65D_B_-lzz8_KvTN6cYVvIbENzRnM0Oras3uQ8-kg.j_9F5CcjtYZuzABBz1z9kMJnpa2aMsVhcJAhz84-JWs","encryptedExpiryMonth":"eyJhbGciOiJSU0EtT0FFUCIsImVuYyI6IkEyNTZDQkMtSFM1MTIiLCJ2ZXJzaW9uIjoiMSJ9.CSHqPZ1d2UhLV5zYOl8NpcNVqYRTE4OxHSTNkRtiebQo33sxODf64DiY1zD0DCAiAU-DVkZ4rK9IAJFSPwDzGYhFOmhGcNp4BGn-j__I1Eun-G-muHR6hCqvnuSkBFY5BWZI3IjMjDsr58QAYdLWyO-FOe3Rr7-DC7JjG1mgTspvhoywYgcijhd9TKJogZMjW6x4Pn4M8XPOsdRA-dFATgZfQn6B9aRseluhGDvFefwI3DxJlObLHNCx3GpTvccsCJ-xX_WWrKqhK1RJAG0UgzSJ5XdwoSjDggwlYd6YJN_BAB1fVBEuj4cvxmbmtasolX4gjIUu9y8mrKacvjaNCA.IjkzRFZpwW_djlgAPrjIKQ.rvSe6-ZK51jm4E86yzP_k-9b-o88nngmHRXNKPTr_do_30Yr584BUpGNthHt7gijMuejvaOpDF4avPWVHKr8-A.1CuRRtBeP5CdN4koqIAhVuZyNWIPDeV34qKD_I9POKM","encryptedExpiryYear":"eyJhbGciOiJSU0EtT0FFUCIsImVuYyI6IkEyNTZDQkMtSFM1MTIiLCJ2ZXJzaW9uIjoiMSJ9.mZwyPrGtz92r2W6Wo8PRJ_VhQQLk78xcXOy-NvOOZGSk6H3PfNxvbOGzAtW8-JBjjiUwG78CAeZeoikS1YWC1iJsTUUOJlCLhW-CdBM_Ljrw2U169jS0f09X7VaHcHC--P0vmeEL8wLgiSFnt8v9zGFeI2CX8hExRvna2ZmtfI7YG5sZwqnf9yr5JSgeTScSy6U9rc1Gpii1gnbu0HEslCehDDJrQSoO9GbHYPeXTdkHS3tjHCnPTsXKC3OoSiIYSf-CAGi_yZbdNTRIk3U8SM3t-XeYUwrT10sRKyA6BSkArkfbj5mtchmn-gfFYvW_3kIaN4FITK09mv0jU_NPdA.4BOM4SxA4J-EWLh9kQorhg.CJh3AqRrUCwEMeOOQamxSBwM04UO0mf36SyIjWOFKn6dItmWsf2WOyMOJNSrHAwu2eeDANa09bKx83ONiEFVFw.IYSIjCROtLmgCJ1Aily8W5XEO8xpIrUfhYZiJyErYmA","encryptedSecurityCode":"eyJhbGciOiJSU0EtT0FFUCIsImVuYyI6IkEyNTZDQkMtSFM1MTIiLCJ2ZXJzaW9uIjoiMSJ9.PZLiL3jFGZu6UaU4kc47LB-eO6DDR850J3cdI0etbt5DW6cZiyTNUjaU_I7zdLc2Ohhcb8i20PrlbVylKQ6Nkh6xG82JGB3tQAP4ZvNjqWQi-z3jyCeyOJdX0pBV2gcmUoCrdj6X9Lj-YD512xtA99S-_h3vRCI3C6pmTVxloimO5Cl5NtwXX_2KSpQmYxznRUAfXCkv7lxFO6kFvhRaATAExXNxCTiQ1PqnxGc4_X_-wEoR91gwSRAKeRhtCiGk0mhuc7WK9ITRLp8_omRPEgl9H1K6X0ZySMVSWfyfgFxMl_vGfNCnh51msKwGOycdFFWQ4AgMXw4BZIA4Bjfr1g.XJ-NPL7hif8_5NGFyqClkg.iJomJZ0FhPw99KxngN8G7KErNliug6K-8Y6vbu0TLhZK9V8Stu9m_ETB7KrknVrR_iwwFZrLKpNaXE0pX4KDJfacfuwiNZcn_OAj0j5-U1uBI3EkpblJ552q3HPEMMrT3tg-JLOy3w1SlY2vF7h9xO2phOtitvnMfx9q7VNp-01XXYAyS-EIBHAMluPePfH10aVdRykIkgGDqgs1csI00rftKGkDrXY7ctX3Atrq7ilXF0V133W_OQ-AEuubq4PMsCv22CBfR0XZviefiT-sQKDTt14PtjLfvKthz3SVFLtufWA_lmx-dTVwupaKVJc7Ju9L4jljowMMaavLWDEsM8eVuqeZUwkt6gp1uykfmTb0jmYPcgxm41pZGV7ubTGUfVmiTM_r-6-bS_exu_irRsYXSfP51c8rq0_cX3dx5GwpO3nbZ8IFUu2f4i8J2zOCMucFXJ8aGh6qQqRnY_3MKuZW2tlTxi515g1r6gUMO-9lFrGQNuRd1GhtgDiZz2Y1C8vcj3VIRhLTZ7lQFSBzAg.5ZSCskD3rdpKgbZXtm2a8AsTR8yvzFVwqBxxN9tXAYU","brand":"visa","checkoutAttemptId":"aea98b82-50d6-4a41-8273-078f6c1ee8031701869720354D0672D821ECEC5B2C75247B9691E8A3959332F82E6E0E814870B8ACB901B33D1"}';
+        if (type.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
+            return '{"type":"' + type + '","holderName":"' + name + '","brand":"visa"}';
+        } else if (type.equalsIgnoreCase(AdyenB2BConstants.SEPA_DIRECT_DEBIT)) {
+            return '{"type" : "' + type + '", "ownerName" : "' + name + '", "iban" : "NL13 TEST 0123 4567 89"}';
+        } else {
+            return null;
+        }
     }
 
     public static String getBillingAddress() {

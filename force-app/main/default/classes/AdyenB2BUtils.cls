@@ -9,8 +9,10 @@ public with sharing class AdyenB2BUtils {
         ];
     }
 
-    public static WebCart fetchCartDetails() {
-        return [
+    public static WebCart fetchCartDetails(Boolean builderMode) {
+        return builderMode ?
+            (WebCart)JSON.deserialize('{"attributes":{"type":"WebCart"},"Id":"0a61Q000000LO00000","OwnerId":"' + UserInfo.getUserId() + '","CurrencyIsoCode":"USD","GrandTotalAmount":100}', WebCart.class)
+        : [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
             WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')
@@ -37,7 +39,7 @@ public with sharing class AdyenB2BUtils {
         req.setBody(compatibleBody);
         HttpResponse response = new Http().send(req);
         if (response.getStatusCode() != 200) {
-            throw new AdyenCustomException('Adyen API returned: ' + response.getStatusCode());
+            throw new AdyenCustomException('Adyen API returned: ' + response.getStatusCode() + ', body: ' + response.getBody());
         } else {
             return response;
         }
