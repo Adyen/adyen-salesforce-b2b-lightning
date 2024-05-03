@@ -9,6 +9,14 @@
         <value>Payment details are invalid.</value>
     </labels>
     <labels>
+        <fullName>Generic_Error</fullName>
+        <categories>error, generic</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Generic Error</shortDescription>
+        <value>Something went wrong</value>
+    </labels>
+    <labels>
         <fullName>Payment_not_authorized</fullName>
         <categories>error,payment,failed</categories>
         <language>en_US</language>
