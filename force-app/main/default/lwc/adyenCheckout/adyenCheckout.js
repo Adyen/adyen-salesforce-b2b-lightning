@@ -59,10 +59,13 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
 
     connectedCallback() {
         this.loading = true;
+        this.clearErrorMessages();
     }
 
     stageAction(checkoutStage) {
         switch (checkoutStage) {
+            case CheckoutStage.CHECK_VALIDITY_UPDATE:
+                return Promise.resolve(this.checkValidity());
             case CheckoutStage.REPORT_VALIDITY_SAVE:
                 return Promise.resolve(this.reportValidity());
             case CheckoutStage.PAYMENT:
@@ -71,6 +74,12 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                 return Promise.resolve(true);
         }
     }
+
+    checkValidity() {
+        this.clearErrorMessages();
+        return this.dropInIsValid;
+    }
+
     reportValidity() {
         if (!this.dropInIsValid) {
             this.dispatchUpdateErrorAsync({
@@ -283,5 +292,14 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             paymentError: errorMsg
         };
         this[NavigationMixin.Navigate](errorPageRef);
+    }
+
+    clearErrorMessages() {
+        this.dispatchUpdateErrorAsync({
+            groupId: 'CardDetails'
+        });
+        this.dispatchUpdateErrorAsync({
+            groupId: 'PaymentProcessing'
+        });
     }
 }
