@@ -64,6 +64,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
 
     connectedCallback() {
         this.loading = true;
+        this.clearErrorMessages();
     }
 
     stageAction(checkoutStage) {
@@ -80,6 +81,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     }
 
     checkValidity() {
+        this.clearErrorMessages();
         return this.dropInIsValid;
     }
 
@@ -105,12 +107,13 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
 
-    async getAdyenCheckout() {
-        await Promise.all([
-            this.loadAdyenScripts(),
-            this.handlePaymentMethodsCall()
-        ]);
-        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
+    async handlePaymentInfo() {
+        const paymentInfo = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
+        if (!paymentInfo) {
+            throw new Error('Failed to load payment methods');
+        }
+        this.paymentMethods = JSON.parse(paymentInfo.paymentMethodsResponse);
+        this.clientKey = paymentInfo.clientKey;
     }
 
     async loadAdyenScripts() {
@@ -120,13 +123,12 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         ]);
     }
 
-    async handlePaymentMethodsCall() {
-        const paymentMethodsResponse = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter, builderMode: this.isInBuilderMode });
-        if (!paymentMethodsResponse) {
-            throw new Error('Failed to load payment methods');
-        }
-        this.paymentMethods = JSON.parse(paymentMethodsResponse.paymentMethodsResponse);
-        this.clientKey = paymentMethodsResponse.clientKey;
+    async getAdyenCheckout() {
+        await Promise.all([
+            this.loadAdyenScripts(),
+            this.handlePaymentInfo()
+        ]);
+        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
     }
 
     async getAdyenCheckoutNoPaymentMethods() {
@@ -172,9 +174,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                         this.cardData.lastFourDigits = data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
                         this.cardData.bin = data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
                     },
-                    onChange: (state) => {
-                        this.dropInIsValid = state.isValid;
-                        const paymentMethod = state.data?.paymentMethod;
+                    onChange: (data) => {
+                        this.dropInIsValid = data.isValid;
+                        const paymentMethod = data.data?.paymentMethod;
                         if (paymentMethod) {
                             this.cardData.holderName = paymentMethod.holderName ? paymentMethod.holderName : this.cardData.holderName;
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
@@ -298,5 +300,14 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             paymentError: errorMsg
         };
         this[NavigationMixin.Navigate](errorPageRef);
+    }
+
+    clearErrorMessages() {
+        this.dispatchUpdateErrorAsync({
+            groupId: 'CardDetails'
+        });
+        this.dispatchUpdateErrorAsync({
+            groupId: 'PaymentProcessing'
+        });
     }
 }
