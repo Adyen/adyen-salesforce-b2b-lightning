@@ -1,0 +1,16 @@
+<!--
+ - Created by daniloc on 21/11/2023.
+ -->
+
+<!-- Adyen Checkout -->
+<template lwc:render-mode="light">
+    <template lwc:if={loading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+    <template lwc:if={error}>
+        <c-error-panel errors={error}></c-error-panel>
+    </template>
+    <template lwc:else>
+        <div id="dropin-container" style="width: 600px;"></div>
+    </template>
+</template>
