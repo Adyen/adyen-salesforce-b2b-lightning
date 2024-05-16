@@ -1,16 +1,20 @@
 public with sharing class AdyenDropInController {
     public class CriticalException extends Exception {}
 
+    @AuraEnabled(Cacheable=true)
+    public static String getMetadataClientKey(String adyenAdapterName) {
+        return AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName).Client_Key__c;
+    }
+
     @AuraEnabled
-    public static PaymentMethodsAndClientKey fetchPaymentMethods(String adyenAdapterName, Boolean builderMode) {
+    public static String fetchPaymentMethods(String adyenAdapterName) {
         WebCart cart;
         try {
             Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(adyenAdapterName);
-            cart = AdyenB2BUtils.fetchCartDetails(builderMode);
+            cart = AdyenB2BUtils.fetchCartDetails();
             PaymentMethodsRequest paymentMethodsRequest = createPaymentMethodsRequest(cart, adyenAdapter.Merchant_Account__c);
             HttpResponse result = AdyenB2BUtils.makePostRequest(adyenAdapter, 'Payment_Methods_Endpoint__c', JSON.serialize(paymentMethodsRequest));
-            PaymentMethodsAndClientKey paymentMethodsAndClientKey = new PaymentMethodsAndClientKey(result.getBody(), adyenAdapter.Client_Key__c);
-            return paymentMethodsAndClientKey;
+            return result.getBody();
         } catch (Exception ex) {
             System.debug(LoggingLevel.ERROR, ex.getMessage());
             LogEntry.insertLogException(ex, 'Fetch Payment Method Error', AdyenDropInController.class.getName(), 'fetchPaymentMethods');
@@ -22,7 +26,7 @@ public with sharing class AdyenDropInController {
     public static MinimalPaymentResponse makePayment(ClientDetails clientDetails) {
         WebCart cart;
         try {
-            cart = AdyenB2BUtils.fetchCartDetails(false);
+            cart = AdyenB2BUtils.fetchCartDetails();
             Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(clientDetails.adyenAdapterName);
             PaymentsRequest paymentsRequest = AdyenPaymentRequestBuilder.create(clientDetails, cart, adyenAdapter);
 
@@ -69,7 +73,7 @@ public with sharing class AdyenDropInController {
         PaymentMethodsRequest paymentMethodsRequest = new PaymentMethodsRequest();
         paymentMethodsRequest.merchantAccount = merchantAccount;
         paymentMethodsRequest.amount = requestAmount;
-        paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.SEPA_DIRECT_DEBIT};
+        paymentMethodsRequest.allowedPaymentMethods = new List<String>{AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.SEPA_DIRECT_DEBIT, AdyenB2BConstants.ACH_DIRECT_DEBIT};
         paymentMethodsRequest.blockedPaymentMethods = new List<String>{AdyenB2BConstants.BANCONTACT_CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE};
         paymentMethodsRequest.shopperLocale = shopperLocale;
         paymentMethodsRequest.countryCode = countryCode;
@@ -171,18 +175,6 @@ public with sharing class AdyenDropInController {
     public static void handleFailedPaymentAttempt(PaymentsResponse paymentsResp, Id cartId) {
         String details = String.format('PSP Reference: {0}\nResult Code: {1}\nRefusal Reason: {2}',new List<String>{paymentsResp.pspReference, paymentsResp.resultCode.name(), paymentsResp.refusalReason});
         LogEntry.insertLogInformation('Failed Payment Attempt', cartId, 'The payment failed with code: ' + paymentsResp.resultCode.name(), details);
-    }
-
-    public class PaymentMethodsAndClientKey {
-        @AuraEnabled
-        public String paymentMethodsResponse;
-        @AuraEnabled
-        public String clientKey;
-
-        PaymentMethodsAndClientKey(String paymentMethodsResponse, String clientKey) {
-            this.paymentMethodsResponse = paymentMethodsResponse;
-            this.clientKey = clientKey;
-        }
     }
 
     public class MinimalPaymentResponse {

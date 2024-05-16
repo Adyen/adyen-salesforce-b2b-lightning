@@ -9,10 +9,8 @@ public with sharing class AdyenB2BUtils {
         ];
     }
 
-    public static WebCart fetchCartDetails(Boolean builderMode) {
-        return builderMode ?
-            (WebCart)JSON.deserialize('{"attributes":{"type":"WebCart"},"Id":"0a61Q000000LO00000","OwnerId":"' + UserInfo.getUserId() + '","CurrencyIsoCode":"USD","GrandTotalAmount":100}', WebCart.class)
-        : [
+    public static WebCart fetchCartDetails() {
+        return [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
             WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')

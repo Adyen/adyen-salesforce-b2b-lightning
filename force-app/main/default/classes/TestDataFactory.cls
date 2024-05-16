@@ -2,15 +2,15 @@
 public without sharing class TestDataFactory {
     public static final String ACTIVE_CURRENCY = [SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE LIMIT 1].IsoCode;
 
-    public static ClientDetails createClientDetails(String type) {
+    public static ClientDetails createClientDetails(String paymentType) {
         ClientDetails clientDetails = new ClientDetails();
-        clientDetails.paymentMethodType = type;
-        clientDetails.paymentMethod = TestDataFactory.getPaymentMethodBody(clientDetails.paymentMethodType, 'Tester');
+        clientDetails.paymentMethodType = paymentType;
+        clientDetails.paymentMethod = TestDataFactory.getPaymentMethodBody(paymentType, 'Tester');
         clientDetails.billingAddress = TestDataFactory.getBillingAddress();
         clientDetails.browserInfo = TestDataFactory.getBrowserInfo();
         clientDetails.adyenAdapterName = AdyenConstants.DEFAULT_ADAPTER_NAME;
 
-        if (type.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
+        if (paymentType.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
             ClientDetails.CardData cardData = new ClientDetails.CardData();
             cardData.brand = 'amex';
             cardData.holderName = 'Danilo Cardoso';
@@ -361,11 +361,13 @@ public without sharing class TestDataFactory {
         }
     }
 
-    public static String getPaymentMethodBody(String type, String name) {
+    public static String getPaymentMethodBody(String type, String shopperName) {
         if (type.equalsIgnoreCase(AdyenB2BConstants.CARD_PAYMENT_METHOD_TYPE)) {
-            return '{"type":"' + type + '","holderName":"' + name + '","brand":"visa"}';
+            return '{"type":"' + type + '","holderName":"' + shopperName + '","brand":"visa"}';
         } else if (type.equalsIgnoreCase(AdyenB2BConstants.SEPA_DIRECT_DEBIT)) {
-            return '{"type" : "' + type + '", "ownerName" : "' + name + '", "iban" : "NL13 TEST 0123 4567 89"}';
+            return '{"type" : "' + type + '", "ownerName" : "' + shopperName + '", "iban" : "NL13 TEST 0123 4567 89"}';
+        } else if (type.equalsIgnoreCase(AdyenB2BConstants.ACH_DIRECT_DEBIT)) {
+            return '{"type":"'+ type +'","ownerName":"' + shopperName + '"}';
         } else {
             return null;
         }

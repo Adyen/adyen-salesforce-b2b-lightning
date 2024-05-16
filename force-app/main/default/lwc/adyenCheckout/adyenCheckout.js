@@ -1,9 +1,11 @@
 import { api, wire, LightningElement } from 'lwc';
 import adyenCheckoutCSS from '@salesforce/resourceUrl/AdyenCheckoutCSS';
 import adyenCheckoutJS from '@salesforce/resourceUrl/AdyenCheckoutJS';
+import { paymentMethodMockResponse } from './mocks';
 import fetchPaymentMethods from '@salesforce/apex/AdyenDropInController.fetchPaymentMethods';
 import makePayment from '@salesforce/apex/AdyenDropInController.makePayment';
 import makeDetailsCall from '@salesforce/apex/AdyenDropInController.makeDetailsCall';
+import getClientKey from '@salesforce/apex/AdyenDropInController.getMetadataClientKey';
 import { loadStyle, loadScript } from 'lightning/platformResourceLoader';
 import { useCheckoutComponent, placeOrder } from 'commerce/checkoutApi';
 import userLocale from '@salesforce/i18n/locale';
@@ -40,7 +42,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     pageRef;
 
     get isInBuilderMode() {
-        return this.pageRef.state.view === "editor";
+        return this.pageRef?.state?.view === "editor";
     }
 
     @wire(CurrentPageReference)
@@ -107,13 +109,25 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
         }
     }
 
-    async handlePaymentInfo() {
-        const paymentInfo = await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
-        if (!paymentInfo) {
+    async getAdyenCheckout() {
+        await Promise.all([
+            this.loadAdyenScripts(),
+            this.fetchClientKey(),
+            this.fetchPaymentMethods()
+        ]);
+        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
+    }
+
+    async fetchClientKey() {
+        this.clientKey = await getClientKey({ adyenAdapterName: this.adyenAdapter });
+    }
+
+    async fetchPaymentMethods() {
+        const paymentMethodsResp = this.isInBuilderMode ? paymentMethodMockResponse : await fetchPaymentMethods({ adyenAdapterName: this.adyenAdapter });
+        if (!paymentMethodsResp) {
             throw new Error('Failed to load payment methods');
         }
-        this.paymentMethods = JSON.parse(paymentInfo.paymentMethodsResponse);
-        this.clientKey = paymentInfo.clientKey;
+        this.paymentMethods = JSON.parse(paymentMethodsResp);
     }
 
     async loadAdyenScripts() {
@@ -121,14 +135,6 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             loadStyle(this, adyenCheckoutCSS),
             loadScript(this, adyenCheckoutJS),
         ]);
-    }
-
-    async getAdyenCheckout() {
-        await Promise.all([
-            this.loadAdyenScripts(),
-            this.handlePaymentInfo()
-        ]);
-        return await AdyenCheckout(this.createConfigObject(this.paymentMethods));
     }
 
     async getAdyenCheckoutNoPaymentMethods() {
@@ -182,6 +188,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                             this.cardData.brand = paymentMethod.brand ? paymentMethod.brand : this.cardData.brand;
                         }
                     }
+                },
+                ach: {
+                    billingAddressRequired: false
                 }
             }
         };
