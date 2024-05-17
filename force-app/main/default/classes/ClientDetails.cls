@@ -13,7 +13,10 @@ public with sharing class ClientDetails {
     public CardData cardData { get; set; }
 
     public Address getCompatibleBillingAddress() {
-        return (Address)JSON.deserialize(this.billingAddress, Address.class);
+        Address addressForAdyen = (Address)JSON.deserialize(this.billingAddress, Address.class);
+        Map<String,Object> addressUntypedMap = (Map<String,Object>)JSON.deserializeUntyped(this.billingAddress);
+        addressForAdyen.stateOrProvince = (String)addressUntypedMap.get('region');
+        return addressForAdyen;
     }
 
     public PaymentMethodDetails getPaymentMethodDetails() {
@@ -21,6 +24,8 @@ public with sharing class ClientDetails {
             return (CardDetails)JSON.deserialize(paymentMethod, CardDetails.class);
         } else if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.SEPA_DIRECT_DEBIT)) {
             return (SepaDirectDebitDetails)JSON.deserialize(paymentMethod, SepaDirectDebitDetails.class);
+        } else if (paymentMethodType.equalsIgnoreCase(AdyenB2BConstants.ACH_DIRECT_DEBIT)) {
+            return (ACHDetails)JSON.deserialize(paymentMethod, ACHDetails.class);
         } else {
             throw new AdyenB2BUtils.AdyenCustomException('Unhandled payment method of type: ' + paymentMethodType);
         }

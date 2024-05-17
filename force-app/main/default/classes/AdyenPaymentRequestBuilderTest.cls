@@ -32,6 +32,20 @@ private class AdyenPaymentRequestBuilderTest {
     }
 
     @IsTest
+    static void createAchPaymentRequestTest() {
+        // given
+        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
+        ClientDetails clientDetails = TestDataFactory.createClientDetails(AdyenB2BConstants.ACH_DIRECT_DEBIT);
+        WebCart cart = TestDataFactory.mockCartRecord('0a61Q000000LOhYQAW', '0051Q00000eb3l5QAA', 99.99);
+        // when
+        Test.startTest();
+        PaymentsRequest paymentsRequest = AdyenPaymentRequestBuilder.create(clientDetails, cart, adyenAdapter);
+        Test.stopTest();
+        // then
+        assertCommonPaymentsRequestValues(paymentsRequest, cart, adyenAdapter.Merchant_Account__c);
+    }
+
+    @IsTest
     static void nonSupportedPaymentRequestTest() {
         // given
         ClientDetails clientDetails = TestDataFactory.createClientDetails('unhandled');
