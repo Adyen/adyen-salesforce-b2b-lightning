@@ -1,10 +1,9 @@
 public with sharing class AdyenPaymentRequestBuilder {
     public static PaymentsRequest create(ClientDetails clientDetails, WebCart cart, Adyen_Adapter__mdt adyenAdapter) {
-        if (clientDetails.getPaymentMethodDetails() instanceof CardDetails) {
+        PaymentMethodDetails paymentMethodDetails = clientDetails.getPaymentMethodDetails();
+        if (paymentMethodDetails instanceof CardDetails) {
             return buildCardPaymentRequest(clientDetails, cart, adyenAdapter);
-        } else if (clientDetails.getPaymentMethodDetails() instanceof SepaDirectDebitDetails) {
-            return buildCommonPaymentsRequest(clientDetails, cart, adyenAdapter);
-        } else if (clientDetails.getPaymentMethodDetails() instanceof ACHDetails) {
+        } else if (paymentMethodDetails instanceof SepaDirectDebitDetails || paymentMethodDetails instanceof ACHDetails) {
             return buildCommonPaymentsRequest(clientDetails, cart, adyenAdapter);
         } else {
             throw new AdyenB2BUtils.AdyenCustomException('Unhandled payment method of type: ' + clientDetails.paymentMethodType);
