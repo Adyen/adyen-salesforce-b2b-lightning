@@ -1,0 +1,60 @@
+name: Salesforce CI/CD
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PBO_AUTH_URL: ${{ secrets.PBO_AUTH_URL }}
+
+    steps:
+      - name: Checkout This Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Salesforce CLI
+        run: npm install @salesforce/cli --global
+
+      - name: Create authentication file from secret
+        run: echo ${PBO_AUTH_URL} > secret.json
+
+      - name: Authenticate to Dev Hub
+        run: sf org login sfdx-url -f secret.json --set-default-dev-hub
+
+      - name: Create Scratch Org
+        run: sf org create scratch -f config/project-scratch-def.json --set-default --alias ScratchOrg --no-namespace -y 1
+
+      - name: Checkout Apex-Library Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Adyen/adyen-apex-api-library
+          ref: develop
+          path: dependency-repo
+
+      - name: Push Apex Lib Source to Scratch Org
+        run: |
+          cd dependency-repo
+          sf project deploy start --target-org ScratchOrg
+
+      - name: Checkout This Repository Back
+        uses: actions/checkout@v4
+
+      - name: Deploy This Repository Code
+        run: sf project deploy start --target-org ScratchOrg --ignore-conflicts
+
+      - name: Run Apex tests
+        run: sf apex run test --target-org ScratchOrg --code-coverage -w 5
+
+      - name: Delete Scratch Org
+        if: always()
+        run: sf org delete scratch --target-org ScratchOrg --no-prompt
