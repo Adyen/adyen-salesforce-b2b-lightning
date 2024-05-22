@@ -31,6 +31,12 @@
                     type="String"
                     default="{!Checkout.Details}"
             />
+            <property
+                    label="Enable Save Payment Methods"
+                    name="enableSavePaymentMethods"
+                    type="Boolean"
+                    default="false"
+            />
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

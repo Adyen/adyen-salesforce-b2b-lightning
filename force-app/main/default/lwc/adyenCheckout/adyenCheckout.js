@@ -26,6 +26,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     @api adyenAdapter
     @api adyenEnvironment;
     @api checkoutDetails;
+    @api enableSavePaymentMethods;
     adyenCheckout;
     mountedDropIn;
     loading = true;
