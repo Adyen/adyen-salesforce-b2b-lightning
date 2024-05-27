@@ -4,6 +4,8 @@ public with sharing class ClientDetails {
     @AuraEnabled
     public String paymentMethod { get; set; }
     @AuraEnabled
+    public Boolean storePaymentMethod { get; set; }
+    @AuraEnabled
     public String adyenAdapterName { get; set; }
     @AuraEnabled
     public String browserInfo { get; set; }

@@ -77,6 +77,7 @@ public with sharing class AdyenDropInController {
         paymentMethodsRequest.blockedPaymentMethods = new List<String>{AdyenB2BConstants.BANCONTACT_CARD_PAYMENT_METHOD_TYPE, AdyenB2BConstants.BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE};
         paymentMethodsRequest.shopperLocale = shopperLocale;
         paymentMethodsRequest.countryCode = countryCode;
+        paymentMethodsRequest.shopperReference = cart.OwnerId;
 
         return paymentMethodsRequest;
     }
