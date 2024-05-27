@@ -116,7 +116,7 @@ public with sharing class AdyenDropInController {
         postAuthRequest.paymentGroup.currencyIsoCode = webCart.CurrencyIsoCode;
 
         Map<String,String> additionalData = new Map<String,String>();
-        additionalData.put('pspReference', paymentsResp.pspReference);
+        additionalData.put(AdyenB2BConstants.PSP_REFERENCE_KEY, paymentsResp.pspReference);
         postAuthRequest.additionalData = additionalData;
 
         ConnectApi.PostAuthorizationResponse postAuthorizationResponse = Test.isRunningTest() ? mockPostAuthResponse() : ConnectApi.Payments.postAuth(postAuthRequest);
