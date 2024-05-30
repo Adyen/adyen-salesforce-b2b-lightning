@@ -1,21 +1,15 @@
 public with sharing class AdyenWebhookBatch implements Database.Batchable<SObject>, Database.Stateful {
     public List<Exception> exceptions = new List<Exception>();
-    public String additionalQueryFilters;
-    public String orderByClause;
 
-    public AdyenWebhookBatch() {
-        this(null, 'ORDER BY CreatedDate');
-    }
-
-    public AdyenWebhookBatch(String additionalQueryFilters, String orderByClause) {
-        this.additionalQueryFilters = additionalQueryFilters;
-        this.orderByClause = orderByClause;
-    }
+    public AdyenWebhookBatch() { }
 
     public Database.QueryLocator start(Database.BatchableContext bc) {
-        String baseQuery = 'SELECT InteractionStatus, GatewayRefNumber, GatewayResultCode FROM PaymentGatewayLog WHERE InteractionType = \'Authorization\' AND InteractionStatus = \'Initiated\' AND ReferencedEntityId = NULL ';
-        String finalQuery = buildQuery(baseQuery, additionalQueryFilters, orderByClause);
-        return Database.getQueryLocator(finalQuery);
+        return Database.getQueryLocator([
+            SELECT InteractionStatus, GatewayRefNumber, GatewayResultCode
+            FROM PaymentGatewayLog
+            WHERE InteractionType = 'Authorization' AND InteractionStatus = 'Initiated' AND ReferencedEntityId = NULL
+            ORDER BY CreatedDate
+        ]);
     }
 
     public void execute(Database.BatchableContext bc, List<PaymentGatewayLog> paymentGatewayLogs) {
@@ -60,13 +54,6 @@ public with sharing class AdyenWebhookBatch implements Database.Batchable<SObjec
 
         update authsToUpdate;
         update logsToUpdate;
-    }
-
-    private static String buildQuery(String baseQuery, String filters, String orderBy) {
-        if (String.isNotBlank(filters)) {
-            baseQuery += 'AND ' + filters + ' ';
-        }
-        return baseQuery + orderBy;
     }
 
     private static Map<String, PaymentGatewayLog> mapLogsByPspReference(List<PaymentGatewayLog> logs) {
