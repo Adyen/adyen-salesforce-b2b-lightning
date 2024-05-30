@@ -21,7 +21,7 @@ public with sharing class AdyenPaymentHelper {
 
     public static CommercePayments.GatewayResponse createPostAuthResponse(CommercePayments.PostAuthorizationRequest postAuthRequest) {
         CommercePayments.PostAuthorizationResponse postAuthorizationResponse = new CommercePayments.PostAuthorizationResponse();
-        String pspReference = postAuthRequest.additionalData?.get('pspReference');
+        String pspReference = postAuthRequest.additionalData?.get(AdyenB2BConstants.PSP_REFERENCE_KEY);
         if (pspReference == null) {
             pspReference = getRandomNumber(16);
         }

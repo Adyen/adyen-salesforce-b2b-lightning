@@ -26,6 +26,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     @api adyenAdapter
     @api adyenEnvironment;
     @api checkoutDetails;
+    @api enableSavePaymentMethods;
     adyenCheckout;
     mountedDropIn;
     loading = true;
@@ -152,6 +153,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             clientKey: this.clientKey,
             locale: userLocale,
             environment: this.adyenEnvironment,
+            showStoredPaymentMethods: this.enableSavePaymentMethods,
             showPayButton: false,
             onSubmit: (state, dropin) => {
                 if (state.isValid === false) {
@@ -176,6 +178,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
                     hasHolderName: true,
                     holderNameRequired: true,
                     hideCVC: false,
+                    enableStoreDetails: this.enableSavePaymentMethods,
                     onFieldValid: (data) => {
                         this.cardData.lastFourDigits = data.endDigits ? data.endDigits : this.cardData.lastFourDigits;
                         this.cardData.bin = data.issuerBin ? String(data.issuerBin) : this.cardData.bin;
@@ -202,6 +205,7 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
             const clientData = {
                 paymentMethodType: state.data.paymentMethod.type,
                 paymentMethod: JSON.stringify(state.data.paymentMethod),
+                storePaymentMethod: state.data.storePaymentMethod === true,
                 adyenAdapterName: this.adyenAdapter,
                 browserInfo: JSON.stringify(state.data.browserInfo),
                 billingAddress: JSON.stringify(this.checkoutDetails.billingInfo.address),
