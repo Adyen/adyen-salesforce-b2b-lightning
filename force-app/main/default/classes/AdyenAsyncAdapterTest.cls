@@ -13,6 +13,16 @@ global class AdyenAsyncAdapterTest {
         Assert.isTrue(postAuthResponse.toString().contains('success'));
     }
 
+    @IsTest
+    static void processNotificationTest() {
+        // given
+        AdyenAsyncAdapter adapter = new AdyenAsyncAdapter();
+        // when
+        CommercePayments.GatewayNotificationResponse postAuthResponse = (CommercePayments.GatewayNotificationResponse)adapter.processNotification(null);
+        // then
+        Assert.isNull(postAuthResponse);
+    }
+
     // legacy global class that cannot be removed
     global class EchoHttpMock implements HttpCalloutMock {
         global HttpResponse respond(HttpRequest req) {

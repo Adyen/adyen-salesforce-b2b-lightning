@@ -1,12 +1,16 @@
 public with sharing class AdyenB2BConstants {
     public static final String EXTERNAL_PLATFORM_NAME_FOR_APP_INFO = 'Adyen Salesforce B2B LWR';
     public static final String ADYEN_LIBRARY_NAME_FOR_APP_INFO = 'adyen-apex-api-library';
-    public static final String ADYEN_LIBRARY_VERSION_FOR_APP_INFO = '3.1.0';
+    public static final String ADYEN_LIBRARY_VERSION_FOR_APP_INFO = '3.1.1';
     public static final String MERCHANT_APP_NAME_FOR_APP_INFO = 'adyen-salesforce-b2b-lwr';
-    public static final String MERCHANT_APP_VERSION_FOR_APP_INFO = '2.1.0';
+    public static final String MERCHANT_APP_VERSION_FOR_APP_INFO = '2.2.0';
+
+    public static final String PSP_REFERENCE_KEY = 'pspReference';
 
     public static final String DEFAULT_PAYMENT_GATEWAY_NAME = 'Adyen';
     public static final String CARD_PAYMENT_METHOD_TYPE = 'scheme';
+    public static final String SEPA_DIRECT_DEBIT = 'sepadirectdebit';
+    public static final String ACH_DIRECT_DEBIT = 'ach';
     public static final String BANCONTACT_CARD_PAYMENT_METHOD_TYPE = 'bcmc';
     public static final String BANCONTACT_MOBILE_PAYMENT_METHOD_TYPE = 'bcmc_mobile';
     public static final String NOTIFICATION_REQUEST_TYPE_AUTHORISE = 'authorisation';

@@ -27,6 +27,10 @@
         <value xsi:type="xsd:string">Enter your merchant account name here</value>
     </values>
     <values>
+        <field>Client_Key__c</field>
+        <value xsi:type="xsd:string">Enter your client key here</value>
+    </values>
+    <values>
         <field>Payment_Methods_Endpoint__c</field>
         <value xsi:type="xsd:string">/paymentMethods</value>
     </values>

@@ -37,7 +37,7 @@ public with sharing class AdyenB2BUtils {
         req.setBody(compatibleBody);
         HttpResponse response = new Http().send(req);
         if (response.getStatusCode() != 200) {
-            throw new AdyenCustomException('Adyen API returned: ' + response.getStatusCode());
+            throw new AdyenCustomException('Adyen API returned: ' + response.getStatusCode() + ', body: ' + response.getBody());
         } else {
             return response;
         }
