@@ -5,7 +5,7 @@
       "default": true,
       "package": "Adyen Payments for B2B Lightning",
       "versionName": "version 2.2",
-      "versionNumber": "2.2.0.NEXT",
+      "versionNumber": "2.2.1.NEXT",
       "definitionFile": "config/project-scratch-def.json",
       "ancestorVersion": "HIGHEST",
       "dependencies": [
@@ -24,6 +24,7 @@
     "Adyen Payments for B2B Lightning": "0Ho4T000000XZDuSAO",
     "Adyen Payments for B2B Lightning@1.0.0-0": "04t4T000001HohjQAC",
     "Adyen Payments for B2B Lightning@2.1.0-4": "04tRP0000000LAvYAM",
-    "Adyen Payments for B2B Lightning@2.2.0-5": "04tRP0000000YWLYA2"
+    "Adyen Payments for B2B Lightning@2.2.0-5": "04tRP0000000YWLYA2",
+    "Adyen Payments for B2B Lightning@2.2.1-1": "04tRP0000000ajRYAQ"
   }
 }
