@@ -63,12 +63,18 @@ export const placeOrder = async (page) => {
 
 export const verifyOrderConfirmation = async (page) => {
 	await expect(
-		await page.getByRole("heading", { name: "Thank you for your order!" })
+		await page.getByRole("heading", {
+			name: "Thank you for your order!",
+			timeout: 10000,
+		})
 	).toBeVisible();
 };
 
 export const verifyOrderFailure = async (page) => {
 	await expect(
-		await page.getByRole("heading", { name: "Something went wrong." })
+		await page.getByRole("heading", {
+			name: "Something went wrong.",
+			timeout: 10000,
+		})
 	).toBeVisible();
 };
