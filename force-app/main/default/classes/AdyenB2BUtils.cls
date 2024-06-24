@@ -3,7 +3,7 @@ public with sharing class AdyenB2BUtils {
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
         return [
             SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
-                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c, Package_Namespace__c
             FROM Adyen_Adapter__mdt
             WHERE DeveloperName = :adyenAdapterName
         ];
@@ -31,7 +31,7 @@ public with sharing class AdyenB2BUtils {
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
         String compatibleBody = makeAdyenCompatible(body);
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('callout:adyen_payment__AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
+        req.setEndpoint(buildEndpoint(adyenAdapter, endpointFieldName));
         req.setMethod('POST');
         req.setHeader('Content-Type', 'application/json');
         req.setBody(compatibleBody);
@@ -44,8 +44,16 @@ public with sharing class AdyenB2BUtils {
     }
 
     private static String buildEndpoint(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName) {
-        return adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.get(endpointFieldName);
-    }
+        String endpointUrl = 'callout:' + 
+                             (String.isNotBlank(adyenAdapter.Package_Namespace__c) ? 
+                             adyenAdapter.Package_Namespace__c + '__AdyenCheckout' : 
+                             'AdyenCheckout');
+        
+        String apiVersion = adyenAdapter.Endpoint_Api_Version__c;
+        String endpointPath = (String) adyenAdapter.get(endpointFieldName);
+        
+        return endpointUrl + apiVersion + endpointPath;
+    }    
 
     public static String makeAdyenCompatible(String input) {
         Map<String, String> mapKeyToReplace = new Map<String, String> {

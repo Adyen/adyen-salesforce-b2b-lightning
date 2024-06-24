@@ -32,7 +32,7 @@ jobs:
         run: sf org login sfdx-url -f secret.json --set-default-dev-hub
 
       - name: Create Scratch Org
-        run: sf org create scratch -f config/project-scratch-def.json --set-default --alias ScratchOrg --no-namespace -y 1
+        run: sf org create scratch -f config/project-scratch-def.json --set-default --alias ScratchOrg -y 1
 
       - name: Checkout Apex-Library Repository
         uses: actions/checkout@v4
