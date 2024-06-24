@@ -51,10 +51,6 @@
         <value xsi:type="xsd:string">/payments/{paymentPspReference}/refunds</value>
     </values>
     <values>
-        <field>Single_Currency_Code__c</field>
-        <value xsi:nil="true"/>
-    </values>
-    <values>
         <field>System_Integrator_Name__c</field>
         <value xsi:nil="true"/>
     </values>
