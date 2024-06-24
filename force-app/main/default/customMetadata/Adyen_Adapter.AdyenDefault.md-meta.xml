@@ -31,6 +31,10 @@
         <value xsi:type="xsd:string">Enter your client key here</value>
     </values>
     <values>
+        <field>Package_Namespace__c</field>
+        <value xsi:type="xsd:string">adyen_payment</value>
+    </values>
+    <values>
         <field>Payment_Methods_Endpoint__c</field>
         <value xsi:type="xsd:string">/paymentMethods</value>
     </values>

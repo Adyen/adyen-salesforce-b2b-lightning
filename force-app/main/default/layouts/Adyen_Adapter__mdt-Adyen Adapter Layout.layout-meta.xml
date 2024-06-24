@@ -48,10 +48,6 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
-                <field>Single_Currency_Code__c</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
                 <field>System_Integrator_Name__c</field>
             </layoutItems>
             <layoutItems>
@@ -69,6 +65,10 @@
             <layoutItems>
                 <behavior>Required</behavior>
                 <field>Payments_Details_Endpoint__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Package_Namespace__c</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>
