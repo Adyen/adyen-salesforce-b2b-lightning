@@ -6,7 +6,7 @@
     <fieldManageability>SubscriberControlled</fieldManageability>
     <label>Merchant Account</label>
     <length>255</length>
-    <required>true</required>
+    <required>false</required>
     <type>Text</type>
     <unique>true</unique>
 </CustomField>
