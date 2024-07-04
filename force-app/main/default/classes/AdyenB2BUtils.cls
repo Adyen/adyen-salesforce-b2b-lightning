@@ -3,9 +3,20 @@ public with sharing class AdyenB2BUtils {
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
         return [
             SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
-                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c, Package_Namespace__c
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c,
+                Package_Namespace__c, Named_Credential__c
             FROM Adyen_Adapter__mdt
             WHERE DeveloperName = :adyenAdapterName
+        ];
+    }
+
+    public static Adyen_Adapter__mdt retrieveAdyenAdapterByMerchantAcct(String merchantAccountName) {
+        return [
+            SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c,
+                Package_Namespace__c, Named_Credential__c
+            FROM Adyen_Adapter__mdt
+            WHERE Merchant_Account__c = :merchantAccountName
         ];
     }
 
@@ -44,10 +55,9 @@ public with sharing class AdyenB2BUtils {
     }
 
     private static String buildEndpoint(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName) {
-        String endpointUrl = 'callout:' + 
-                             (String.isNotBlank(adyenAdapter.Package_Namespace__c) ? 
-                             adyenAdapter.Package_Namespace__c + '__AdyenCheckout' : 
-                             'AdyenCheckout');
+        String namedCredential = adyenAdapter.Named_Credential__c;
+        String namespace = String.isNotBlank(adyenAdapter.Package_Namespace__c) ? adyenAdapter.Package_Namespace__c + '__' : '';
+        String endpointUrl = 'callout:' + namespace + namedCredential;
         
         String apiVersion = adyenAdapter.Endpoint_Api_Version__c;
         String endpointPath = (String) adyenAdapter.get(endpointFieldName);
