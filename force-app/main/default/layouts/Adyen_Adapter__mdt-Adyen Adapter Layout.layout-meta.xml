@@ -15,12 +15,12 @@
                 <field>Merchant_Account__c</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Required</behavior>
-                <field>Named_Credential__c</field>
+                <behavior>Edit</behavior>
+                <field>Package_Namespace__c</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
-                <field>System_Integrator_Name__c</field>
+                <behavior>Required</behavior>
+                <field>Named_Credential__c</field>
             </layoutItems>
         </layoutColumns>
         <layoutColumns>
@@ -29,12 +29,16 @@
                 <field>DeveloperName</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
+                <behavior>Required</behavior>
                 <field>Client_Key__c</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Edit</behavior>
+                <behavior>Required</behavior>
                 <field>HMAC_Key__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>System_Integrator_Name__c</field>
             </layoutItems>
         </layoutColumns>
         <style>TwoColumnsLeftToRight</style>
@@ -48,10 +52,6 @@
             <layoutItems>
                 <behavior>Required</behavior>
                 <field>NamespacePrefix</field>
-            </layoutItems>
-            <layoutItems>
-                <behavior>Edit</behavior>
-                <field>Package_Namespace__c</field>
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
