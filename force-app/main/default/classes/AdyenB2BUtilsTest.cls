@@ -10,6 +10,19 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
+    static void retrieveAdyenAdapterMissingTest() {
+        // given
+        String missingAdapterName = 'not there';
+        // when
+        try {
+            AdyenB2BUtils.retrieveAdyenAdapter(missingAdapterName);
+            Assert.fail();
+        } catch (Exception ex) { // then
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
+    }
+
+    @IsTest
     static void retrieveAdyenAdapterByMerchantAcctTest() {
         // given
         String merchantAccountName = [SELECT Merchant_Account__c FROM Adyen_Adapter__mdt LIMIT 1].Merchant_Account__c;
@@ -18,6 +31,19 @@ private class AdyenB2BUtilsTest {
         // then
         Assert.isNotNull(adyenAdapter);
         Assert.areEqual(merchantAccountName, adyenAdapter.Merchant_Account__c);
+    }
+
+    @IsTest
+    static void retrieveAdyenAdapterByMerchantAcctMissingTest() {
+        // given
+        String wrongMerchantAcctName = 'John Doe';
+        // when
+        try {
+            AdyenB2BUtils.retrieveAdyenAdapterByMerchantAcct(wrongMerchantAcctName);
+            Assert.fail();
+        } catch (Exception ex) { // then
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
     }
 
     @IsTest
@@ -99,6 +125,18 @@ private class AdyenB2BUtilsTest {
         // then
         Assert.isNotNull(cart);
         Assert.areEqual(unitPrice, cart.GrandTotalAmount);
+    }
+
+    @IsTest
+    static void fetchCartDetailsMissingTest() {
+        // given - no carts available
+        // when
+        try {
+            AdyenB2BUtils.fetchCartDetails();
+            Assert.fail();
+        } catch (Exception ex) {
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
     }
 
     @IsTest
