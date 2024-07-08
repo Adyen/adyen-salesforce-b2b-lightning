@@ -50,7 +50,7 @@ global without sharing class AdyenAuthWebhookHandler {
         return String.isNotBlank(idString) && idString.isAlphanumeric() && (idString.length() == 15 || idString.length() == 18);
     }
 
-    // The PSP Reference number is a alphanumeric value containing 16 characters (https://help.adyen.com/en_US/knowledge/payments/payment-basics/what-is-a-psp-reference-number)
+    // The Adyen PSP Reference number is a alphanumeric value containing 16 characters
     private static Boolean isValidPspReference(String pspReference) {
         return String.isNotBlank(pspReference) && pspReference.isAlphanumeric() && pspReference.length() == 16;
     }
