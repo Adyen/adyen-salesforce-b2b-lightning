@@ -6,10 +6,10 @@ global without sharing class AdyenAuthWebhookHandler {
         NotificationRequestItem notificationRequestItem;
         RestRequest req = RestContext.request;
         try {
-            HMACValidator validator = new HMACValidator();
             notificationRequestItem = parseAdyenNotificationRequest(req.requestBody.toString());
             Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapterByMerchantAcct(notificationRequestItem.merchantAccountCode);
-            if (!Test.isRunningTest() && !validator.validateHMAC(notificationRequestItem, adyenAdapter.HMAC_Key__c)) {
+            HMACValidator validator = new HMACValidator(notificationRequestItem, adyenAdapter.HMAC_Key__c);
+            if (!Test.isRunningTest() && !validator.validateHMAC()) {
                 return '[accepted] but not valid notification request';
             }
             if (!isValidNotification(notificationRequestItem)) {
@@ -41,8 +41,8 @@ global without sharing class AdyenAuthWebhookHandler {
 
     private static Boolean isValidNotification(NotificationRequestItem notificationRequestItem) {
         return AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)
-                && isValidPspReference(notificationRequestItem.pspReference)
-                && isValidId(notificationRequestItem.merchantReference);
+            && isValidPspReference(notificationRequestItem.pspReference)
+            && isValidId(notificationRequestItem.merchantReference);
     }
 
     // Salesforce Ids are alphanumeric values containing 15 (case sensitive) or 18 characters (case insensitive)
