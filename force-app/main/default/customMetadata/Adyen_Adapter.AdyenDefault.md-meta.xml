@@ -58,4 +58,8 @@
         <field>System_Integrator_Name__c</field>
         <value xsi:nil="true"/>
     </values>
+    <values>
+        <field>HMAC_Key__c</field>
+        <value xsi:type="xsd:string">Generated_HMAC_Key</value>
+    </values>
 </CustomMetadata>
