@@ -1,7 +1,7 @@
 @IsTest
 private class AdyenB2BUtilsTest {
     @IsTest
-    private static void retrieveAdyenAdapterTest() {
+    static void retrieveAdyenAdapterTest() {
         // given - custom metadata type is visible in test scenario
         // when
         Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
@@ -10,7 +10,44 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void makePostRequestTest() {
+    static void retrieveAdyenAdapterMissingTest() {
+        // given
+        String missingAdapterName = 'not there';
+        // when
+        try {
+            AdyenB2BUtils.retrieveAdyenAdapter(missingAdapterName);
+            Assert.fail();
+        } catch (Exception ex) { // then
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
+    }
+
+    @IsTest
+    static void retrieveAdyenAdapterByMerchantAcctTest() {
+        // given
+        String merchantAccountName = [SELECT Merchant_Account__c FROM Adyen_Adapter__mdt LIMIT 1].Merchant_Account__c;
+        // when
+        Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapterByMerchantAcct(merchantAccountName);
+        // then
+        Assert.isNotNull(adyenAdapter);
+        Assert.areEqual(merchantAccountName, adyenAdapter.Merchant_Account__c);
+    }
+
+    @IsTest
+    static void retrieveAdyenAdapterByMerchantAcctMissingTest() {
+        // given
+        String wrongMerchantAcctName = 'John Doe';
+        // when
+        try {
+            AdyenB2BUtils.retrieveAdyenAdapterByMerchantAcct(wrongMerchantAcctName);
+            Assert.fail();
+        } catch (Exception ex) { // then
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
+    }
+
+    @IsTest
+    static void makePostRequestTest() {
         // given
         Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
         Test.setMock(HttpCalloutMock.class, new TestDataFactory.PaymentMethodsSuccessMock());
@@ -24,7 +61,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void makePostRequestErrorTest() {
+    static void makePostRequestErrorTest() {
         // given
         Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
         Test.setMock(HttpCalloutMock.class, new TestDataFactory.GenericErrorMock());
@@ -40,7 +77,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void getApplicationInfoTest() {
+    static void getApplicationInfoTest() {
         // given
         String systemIntegrator = 'test';
         // when
@@ -57,7 +94,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void getSiteUrlTest() {
+    static void getSiteUrlTest() {
         // given - cannot simulate network id in test environment
         // when
         Test.startTest();
@@ -69,7 +106,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest(SeeAllData=true)
-    private static void fetchCartDetailsTest() {
+    static void fetchCartDetailsTest() {
         // given
         Decimal unitPrice = 10.99;
         String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
@@ -91,7 +128,19 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void isPaymentAcceptedTest() {
+    static void fetchCartDetailsMissingTest() {
+        // given - no carts available
+        // when
+        try {
+            AdyenB2BUtils.fetchCartDetails();
+            Assert.fail();
+        } catch (Exception ex) {
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
+    }
+
+    @IsTest
+    static void isPaymentAcceptedTest() {
         // given authorised
         PaymentsResponse.ResultCodeEnum paymentResultCode = PaymentsResponse.ResultCodeEnum.AUTHORISED;
         // when
@@ -122,7 +171,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void safeAssignTextFieldValueTest() {
+    static void safeAssignTextFieldValueTest() {
         // given
         String text = 'sample';
         // when
@@ -141,7 +190,7 @@ private class AdyenB2BUtilsTest {
     }
 
     @IsTest
-    private static void getAmountMultiplierTest() {
+    static void getAmountMultiplierTest() {
         // given 3 decimal places currency
         String currencyCode = 'JOD';
         // when

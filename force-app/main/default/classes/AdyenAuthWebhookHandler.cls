@@ -6,10 +6,10 @@ global without sharing class AdyenAuthWebhookHandler {
         NotificationRequestItem notificationRequestItem;
         RestRequest req = RestContext.request;
         try {
-            HMACValidator validator = new HMACValidator();
-            Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapter(AdyenConstants.DEFAULT_ADAPTER_NAME);
             notificationRequestItem = parseAdyenNotificationRequest(req.requestBody.toString());
-            if (!Test.isRunningTest() && !validator.validateHMAC(notificationRequestItem, adyenAdapter.HMAC_Key__c)){
+            Adyen_Adapter__mdt adyenAdapter = AdyenB2BUtils.retrieveAdyenAdapterByMerchantAcct(notificationRequestItem.merchantAccountCode);
+            HMACValidator validator = new HMACValidator(notificationRequestItem, adyenAdapter.HMAC_Key__c);
+            if (!Test.isRunningTest() && !validator.validateHMAC()) {
                 return '[accepted] but not valid notification request';
             }
             if (!isValidNotification(notificationRequestItem)) {
@@ -23,7 +23,7 @@ global without sharing class AdyenAuthWebhookHandler {
             }
         } catch (Exception ex) {
             System.debug(LoggingLevel.ERROR, ex.getMessage());
-            if (ex instanceof HMACValidator.HmacValidationException){
+            if (ex instanceof HMACValidator.HmacValidationException) {
                 return '[accepted] but not valid notification request';
             } else {
                 LogEntry.insertLogException(ex, 'Adyen Auth Web Hook Handler Error', AdyenAuthWebhookHandler.class.getName(), 'doPost', req.requestBody?.toString());
@@ -34,15 +34,15 @@ global without sharing class AdyenAuthWebhookHandler {
 
     private static NotificationRequestItem parseAdyenNotificationRequest(String requestBody) {
         String requestBodySFCompatible = AdyenB2BUtils.makeSalesforceCompatible(requestBody);
-        AdyenNotification adyenNotification  = (AdyenNotification)JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
+        AdyenNotification adyenNotification = (AdyenNotification)JSON.deserialize(requestBodySFCompatible, AdyenNotification.class);
         NotificationRequestItem notificationRequestItem = adyenNotification.notificationItems[0].NotificationRequestItem;
         return notificationRequestItem;
     }
 
     private static Boolean isValidNotification(NotificationRequestItem notificationRequestItem) {
         return AdyenB2BConstants.NOTIFICATION_REQUEST_TYPE_AUTHORISE.equalsIgnoreCase(notificationRequestItem.eventCode)
-                && isValidPspReference(notificationRequestItem.pspReference)
-                && isValidId(notificationRequestItem.merchantReference);
+            && isValidPspReference(notificationRequestItem.pspReference)
+            && isValidId(notificationRequestItem.merchantReference);
     }
 
     // Salesforce Ids are alphanumeric values containing 15 (case sensitive) or 18 characters (case insensitive)
@@ -50,7 +50,7 @@ global without sharing class AdyenAuthWebhookHandler {
         return String.isNotBlank(idString) && idString.isAlphanumeric() && (idString.length() == 15 || idString.length() == 18);
     }
 
-    // The PSP Reference number is a alphanumeric value containing 16 characters (https://help.adyen.com/en_US/knowledge/payments/payment-basics/what-is-a-psp-reference-number)
+    // The Adyen PSP Reference number is a alphanumeric value containing 16 characters
     private static Boolean isValidPspReference(String pspReference) {
         return String.isNotBlank(pspReference) && pspReference.isAlphanumeric() && pspReference.length() == 16;
     }

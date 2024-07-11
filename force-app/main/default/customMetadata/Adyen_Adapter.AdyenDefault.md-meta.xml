@@ -11,6 +11,10 @@
         <value xsi:type="xsd:string">/payments/{paymentPspReference}/captures</value>
     </values>
     <values>
+        <field>Client_Key__c</field>
+        <value xsi:type="xsd:string">Enter your client key here</value>
+    </values>
+    <values>
         <field>Endpoint_Api_Version__c</field>
         <value xsi:type="xsd:string">/v71</value>
     </values>
@@ -27,8 +31,8 @@
         <value xsi:type="xsd:string">Enter your merchant account name here</value>
     </values>
     <values>
-        <field>Client_Key__c</field>
-        <value xsi:type="xsd:string">Enter your client key here</value>
+        <field>Named_Credential__c</field>
+        <value xsi:type="xsd:string">AdyenCheckout</value>
     </values>
     <values>
         <field>Package_Namespace__c</field>
@@ -53,5 +57,9 @@
     <values>
         <field>System_Integrator_Name__c</field>
         <value xsi:nil="true"/>
+    </values>
+    <values>
+        <field>HMAC_Key__c</field>
+        <value xsi:type="xsd:string">Generated_HMAC_Key</value>
     </values>
 </CustomMetadata>

@@ -14,7 +14,7 @@
     <targetConfigs>
         <targetConfig targets="lightningCommunity__Default">
             <property
-                    label="Adyen Adapter Name"
+                    label="Adyen Adapter Developer Name"
                     name="adyenAdapter"
                     type="String"
                     default="AdyenDefault"
