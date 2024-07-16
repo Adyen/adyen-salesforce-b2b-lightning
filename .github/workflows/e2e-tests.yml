@@ -50,7 +50,7 @@ jobs:
         run: sf project deploy start --target-org e2eOrg --ignore-conflicts
 
       - name: Run Apex tests
-        run: sf apex run test --code-coverage -w 5
+        run: sf apex run test --target-org e2eOrg --code-coverage -w 5
 
   e2e-testing:
     runs-on: ubuntu-latest
