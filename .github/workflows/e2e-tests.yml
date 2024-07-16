@@ -28,8 +28,8 @@ jobs:
       - name: Create authentication file from secret
         run: echo ${B2B_E2E_AUTH_URL} > secret.json
 
-      - name: Authenticate to Dev Hub
-        run: sf org login sfdx-url -f secret.json --set-default
+      - name: Authenticate to E2E org
+        run: sf org login sfdx-url -f secret.json --set-default --alias e2eOrg
 
       - name: Checkout Apex-Library Repository
         uses: actions/checkout@v4
@@ -41,13 +41,13 @@ jobs:
       - name: Push Apex Lib Source to the Org
         run: |
           cd dependency-repo
-          sf project deploy start
+          sf project deploy start --target-org e2eOrg
 
       - name: Checkout This Repository Back
         uses: actions/checkout@v4
 
       - name: Deploy This Repository Code
-        run: sf project deploy start --ignore-conflicts
+        run: sf project deploy start --target-org e2eOrg --ignore-conflicts
 
       - name: Run Apex tests
         run: sf apex run test --code-coverage -w 5
@@ -60,13 +60,13 @@ jobs:
       with:
         node-version: lts/*
     - name: Install dependencies
-      working-directory: adyen-salesforce-b2b-lightning/e2e/
+      working-directory: ./e2e
       run: npm ci
     - name: Install Playwright dependencies
-      working-directory: adyen-salesforce-b2b-lightning/e2e/
+      working-directory: ./e2e
       run: npx playwright install --with-deps
     - name: Run Playwright tests
-      working-directory: adyen-salesforce-b2b-lightning/e2e/
+      working-directory: ./e2e
       run: npx playwright test
       env:
         STORE_BASE_URL: ${{ secrets.STORE_BASE_URL }}
