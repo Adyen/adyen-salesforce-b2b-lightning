@@ -52,7 +52,7 @@ jobs:
       - name: Run Apex tests
         run: sf apex run test --code-coverage -w 5
 
-    e2e-testing:
+  e2e-testing:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
