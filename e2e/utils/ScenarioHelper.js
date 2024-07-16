@@ -1,9 +1,7 @@
 import { expect } from "@playwright/test";
-import dotenv from "dotenv";
-dotenv.config();
 
 const login = async (page) => {
-	await page.goto(`/${process.env.STORE_ID}/`);
+	await page.goto(`/${process.env.STORE_ID}`);
 	await page.getByLabel("Username").click();
 	await page.getByLabel("Username").fill(process.env.STORE_USERNAME);
 	await page.getByLabel("Password").click();
@@ -22,7 +20,7 @@ const addProductToCart = async (page, quantity = 1) => {
 };
 
 const navigateToCartAndCheckout = async (page) => {
-	await page.getByLabel("View Cart").click();
+	await page.goto(`/${process.env.STORE_ID}/cart`)
 	await page.getByRole("button", { name: "Checkout" }).click();
 };
 

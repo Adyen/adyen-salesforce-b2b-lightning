@@ -1,15 +1,14 @@
 {
-	"name": "tests",
+	"name": "adyen_salesforce_b2b_e2e_tests",
 	"version": "1.0.0",
-	"description": "",
+	"description": "e2e tests for Adyen Salesforce B2B Lightning",
 	"main": "index.js",
 	"scripts": {},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
-		"@playwright/test": "^1.44.1",
-		"@types/node": "^20.14.2"
+		"@playwright/test": "^1.44.1"
 	},
 	"dependencies": {
 		"dotenv": "^16.4.5"
