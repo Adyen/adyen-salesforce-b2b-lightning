@@ -26,7 +26,7 @@ jobs:
         run: npm install @salesforce/cli --global
 
       - name: Create authentication file from secret
-        run: echo ${PBO_AUTH_URL} > secret.json
+        run: echo ${B2B_E2E_AUTH_URL} > secret.json
 
       - name: Authenticate to Dev Hub
         run: sf org login sfdx-url -f secret.json --set-default
