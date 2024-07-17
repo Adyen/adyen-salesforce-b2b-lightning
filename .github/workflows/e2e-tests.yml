@@ -46,6 +46,19 @@ jobs:
       - name: Checkout This Repository Back
         uses: actions/checkout@v4
 
+      - name: Install xmlstarlet
+        run: sudo apt-get install -y xmlstarlet
+
+      - name: Update customMetadata XML
+        run: |
+          chmod +x ./scripts/updateCustomMetadata.sh
+          ./scripts/updateCustomMetadata.sh
+        env:
+          MERCHANT_ACCOUNT: ${{ secrets.B2B_E2E_MERCHANT_ACCOUNT }}
+          CLIENT_KEY: ${{ secrets.B2B_E2E_CLIENT_KEY }}
+          PACKAGE_NAMESPACE: ${{ secrets.B2B_E2E_PACKAGE_NAMESPACE }}
+          HMAC_KEY: ${{ secrets.B2B_E2E_HMAC_KEY }}
+
       - name: Deploy This Repository Code
         run: sf project deploy start --target-org e2eOrg --ignore-conflicts
 
