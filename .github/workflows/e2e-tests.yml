@@ -67,28 +67,36 @@ jobs:
   e2e-testing:
     runs-on: ubuntu-latest
     needs: build-and-deploy
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      working-directory: ./e2e
-      run: npm ci
-    - name: Install Playwright dependencies
-      working-directory: ./e2e
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      working-directory: ./e2e
-      run: npx playwright test
-      env:
-        STORE_BASE_URL: ${{ secrets.STORE_BASE_URL }}
-        STORE_ID: ${{ secrets.STORE_ID }}
-        STORE_USERNAME: ${{ secrets.STORE_USERNAME }}
-        STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-    - uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: Install Playwright dependencies
+        working-directory: ./e2e
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        working-directory: ./e2e
+        run: npx playwright test
+        env:
+          STORE_BASE_URL: ${{ secrets.STORE_BASE_URL }}
+          STORE_ID: ${{ secrets.STORE_ID }}
+          STORE_USERNAME: ${{ secrets.STORE_USERNAME }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
