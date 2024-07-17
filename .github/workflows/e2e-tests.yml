@@ -56,7 +56,6 @@ jobs:
         env:
           MERCHANT_ACCOUNT: ${{ secrets.B2B_E2E_MERCHANT_ACCOUNT }}
           CLIENT_KEY: ${{ secrets.B2B_E2E_CLIENT_KEY }}
-          PACKAGE_NAMESPACE: ${{ secrets.B2B_E2E_PACKAGE_NAMESPACE }}
           HMAC_KEY: ${{ secrets.B2B_E2E_HMAC_KEY }}
 
       - name: Deploy This Repository Code
@@ -67,6 +66,7 @@ jobs:
 
   e2e-testing:
     runs-on: ubuntu-latest
+    needs: build-and-deploy
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
