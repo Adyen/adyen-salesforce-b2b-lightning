@@ -58,11 +58,8 @@ jobs:
           CLIENT_KEY: ${{ secrets.B2B_E2E_CLIENT_KEY }}
           HMAC_KEY: ${{ secrets.B2B_E2E_HMAC_KEY }}
 
-      - name: Deploy This Repository Code
-        run: sf project deploy start --target-org e2eOrg --ignore-conflicts
-
-      - name: Run Apex tests
-        run: sf apex run test --target-org e2eOrg --code-coverage -w 5
+      - name: Deploy This Repository Code and run unit tests
+        run: sf project deploy start --target-org e2eOrg --test-level RunLocalTests --ignore-conflicts
 
   e2e-testing:
     runs-on: ubuntu-latest
