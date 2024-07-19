@@ -53,7 +53,7 @@ jobs:
         run: sf project deploy start --target-org ScratchOrg --ignore-conflicts
 
       - name: Run Apex tests
-        run: sf apex run test --target-org ScratchOrg --code-coverage -w 5
+        run: sf apex run test --target-org ScratchOrg --synchronous --code-coverage
 
       - name: Delete Scratch Org
         if: always()
