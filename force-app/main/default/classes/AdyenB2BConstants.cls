@@ -1,9 +1,9 @@
 public with sharing class AdyenB2BConstants {
     public static final String EXTERNAL_PLATFORM_NAME_FOR_APP_INFO = 'Adyen Salesforce B2B LWR';
     public static final String ADYEN_LIBRARY_NAME_FOR_APP_INFO = 'adyen-apex-api-library';
-    public static final String ADYEN_LIBRARY_VERSION_FOR_APP_INFO = '3.1.1';
+    public static final String ADYEN_LIBRARY_VERSION_FOR_APP_INFO = '3.2.0';
     public static final String MERCHANT_APP_NAME_FOR_APP_INFO = 'adyen-salesforce-b2b-lwr';
-    public static final String MERCHANT_APP_VERSION_FOR_APP_INFO = '2.2.1';
+    public static final String MERCHANT_APP_VERSION_FOR_APP_INFO = '2.3.0';
 
     public static final String PSP_REFERENCE_KEY = 'pspReference';
 

@@ -4,13 +4,13 @@
       "path": "force-app",
       "default": true,
       "package": "Adyen Payments for B2B Lightning",
-      "versionName": "version 2.2",
-      "versionNumber": "2.2.1.NEXT",
+      "versionName": "version 2.3",
+      "versionNumber": "2.3.0.NEXT",
       "definitionFile": "config/project-scratch-def.json",
       "ancestorVersion": "HIGHEST",
       "dependencies": [
         {
-          "package": "API Library Apex Adyen@3.1.1-1"
+          "package": "API Library Apex Adyen@3.2.0-2"
         }
       ]
     }
@@ -18,13 +18,14 @@
   "name": "adyen-b2b-lightning-2GP",
   "namespace": "adyen_payment",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "59.0",
+  "sourceApiVersion": "60.0",
   "packageAliases": {
-    "API Library Apex Adyen@3.1.1-1": "04tRP0000000XGvYAM",
+    "API Library Apex Adyen@3.2.0-2": "04tRP0000000j5BYAQ",
     "Adyen Payments for B2B Lightning": "0Ho4T000000XZDuSAO",
     "Adyen Payments for B2B Lightning@1.0.0-0": "04t4T000001HohjQAC",
     "Adyen Payments for B2B Lightning@2.1.0-4": "04tRP0000000LAvYAM",
     "Adyen Payments for B2B Lightning@2.2.0-5": "04tRP0000000YWLYA2",
-    "Adyen Payments for B2B Lightning@2.2.1-1": "04tRP0000000ajRYAQ"
+    "Adyen Payments for B2B Lightning@2.2.1-1": "04tRP0000000ajRYAQ",
+    "Adyen Payments for B2B Lightning@2.3.0-1": "04tRP0000000j6nYAA"
   }
 }
