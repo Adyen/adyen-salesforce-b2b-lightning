@@ -10,7 +10,7 @@
       "ancestorVersion": "HIGHEST",
       "dependencies": [
         {
-          "package": "API Library Apex Adyen@3.2.0-2"
+          "package": "API Library Apex Adyen@3.2.0-5"
         }
       ]
     }
@@ -20,12 +20,12 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "60.0",
   "packageAliases": {
-    "API Library Apex Adyen@3.2.0-2": "04tRP0000000j5BYAQ",
+    "API Library Apex Adyen@3.2.0-5": "04tRP0000000lwbYAA",
     "Adyen Payments for B2B Lightning": "0Ho4T000000XZDuSAO",
     "Adyen Payments for B2B Lightning@1.0.0-0": "04t4T000001HohjQAC",
     "Adyen Payments for B2B Lightning@2.1.0-4": "04tRP0000000LAvYAM",
     "Adyen Payments for B2B Lightning@2.2.0-5": "04tRP0000000YWLYA2",
     "Adyen Payments for B2B Lightning@2.2.1-1": "04tRP0000000ajRYAQ",
-    "Adyen Payments for B2B Lightning@2.3.0-1": "04tRP0000000j6nYAA"
+    "Adyen Payments for B2B Lightning@2.3.0-3": "04tRP0000000lyDYAQ"
   }
 }
