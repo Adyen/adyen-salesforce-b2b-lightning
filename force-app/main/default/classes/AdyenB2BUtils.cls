@@ -1,21 +1,44 @@
 public with sharing class AdyenB2BUtils {
     public class AdyenCustomException extends Exception {}
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
-        return [
+        List<Adyen_Adapter__mdt> adyenAdapters = [
             SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
-                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c,
+                Package_Namespace__c, Named_Credential__c
             FROM Adyen_Adapter__mdt
             WHERE DeveloperName = :adyenAdapterName
         ];
+        if (adyenAdapters.isEmpty()) {
+            throw new AdyenCustomException('No Adyen adapter found with this name: ' + adyenAdapterName);
+        }
+        return adyenAdapters[0];
+    }
+
+    public static Adyen_Adapter__mdt retrieveAdyenAdapterByMerchantAcct(String merchantAccountName) {
+        List<Adyen_Adapter__mdt> adyenAdapters = [
+            SELECT Merchant_Account__c, Endpoint_Api_Version__c, Payment_Methods_Endpoint__c, Client_Key__c,
+                Payments_Endpoint__c, System_Integrator_Name__c, Payments_Details_Endpoint__c, HMAC_Key__c,
+                Package_Namespace__c, Named_Credential__c
+            FROM Adyen_Adapter__mdt
+            WHERE Merchant_Account__c = :merchantAccountName
+        ];
+        if (adyenAdapters.isEmpty()) {
+            throw new AdyenCustomException('No Adyen adapter found for this merchant account: ' + merchantAccountName);
+        }
+        return adyenAdapters[0];
     }
 
     public static WebCart fetchCartDetails() {
-        return [
+        List<WebCart> webCarts = [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
             WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')
             WITH USER_MODE
         ];
+        if (webCarts.isEmpty()) {
+            throw new AdyenCustomException('No active or in checkout cart found for this user id: ' + UserInfo.getUserId());
+        }
+        return webCarts[0];
     }
 
     public static String getSiteUrl() {
@@ -31,7 +54,7 @@ public with sharing class AdyenB2BUtils {
     public static HttpResponse makePostRequest(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName, String body) {
         String compatibleBody = makeAdyenCompatible(body);
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('callout:adyen_payment__AdyenCheckout' + buildEndpoint(adyenAdapter, endpointFieldName));
+        req.setEndpoint(buildEndpoint(adyenAdapter, endpointFieldName));
         req.setMethod('POST');
         req.setHeader('Content-Type', 'application/json');
         req.setBody(compatibleBody);
@@ -44,23 +67,30 @@ public with sharing class AdyenB2BUtils {
     }
 
     private static String buildEndpoint(Adyen_Adapter__mdt adyenAdapter, String endpointFieldName) {
-        return adyenAdapter.Endpoint_Api_Version__c + adyenAdapter.get(endpointFieldName);
-    }
+        String namedCredential = adyenAdapter.Named_Credential__c;
+        String namespace = String.isNotBlank(adyenAdapter.Package_Namespace__c) ? adyenAdapter.Package_Namespace__c + '__' : '';
+        String endpointUrl = 'callout:' + namespace + namedCredential;
+        
+        String apiVersion = adyenAdapter.Endpoint_Api_Version__c;
+        String endpointPath = (String) adyenAdapter.get(endpointFieldName);
+        
+        return endpointUrl + apiVersion + endpointPath;
+    }    
 
     public static String makeAdyenCompatible(String input) {
         Map<String, String> mapKeyToReplace = new Map<String, String> {
-                'currency_x' => 'currency',
-                'number_x' => 'number',
-                'group_x' => 'group'
+            'currency_x' => 'currency',
+            'number_x' => 'number',
+            'group_x' => 'group'
         };
         return replaceAttributeName(input, mapKeyToReplace);
     }
 
     public static String makeSalesforceCompatible(String input) {
         Map<String, String> mapKeyToReplace = new Map<String, String>{
-                'currency' => 'currency_x',
-                'number' => 'number_x',
-                'group' => 'group_x'
+            'currency' => 'currency_x',
+            'number' => 'number_x',
+            'group' => 'group_x'
         };
         return replaceAttributeName(input, mapKeyToReplace);
     }

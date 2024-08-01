@@ -395,7 +395,8 @@ public without sharing class TestDataFactory {
     }
 
     public static String mockWebhookRequest(String eventCode, String pspReference, String webCartId, Boolean success) {
-        return '{"live": "false", "notificationItems": [{"NotificationRequestItem": {"additionalData": {"recurring.recurringDetailReference": "9915692881181044", "recurring.shopperReference": "YOUR_SHOPPER_REFERENCE"}, "amount": {"currency": "'+ ACTIVE_CURRENCY +'", "value": 1000}, "eventCode": "' + eventCode + '", "eventDate": "2021-01-01T01:00:00+01:00", "merchantAccountCode": "YOUR_MERCHANT_ACCOUNT", "merchantReference": "' + webCartId + '", "paymentMethod": "ach", "operations": ["CANCEL", "CAPTURE", "REFUND"], "pspReference": "' + pspReference + '", "reason": "null", "success": "' + success + '"}}]}';
+        String merchantAccountName = [SELECT Merchant_Account__c FROM Adyen_Adapter__mdt LIMIT 1].Merchant_Account__c;
+        return '{"live": "false", "notificationItems": [{"NotificationRequestItem": {"additionalData": {"recurring.recurringDetailReference": "9915692881181044", "recurring.shopperReference": "YOUR_SHOPPER_REFERENCE"}, "amount": {"currency": "'+ ACTIVE_CURRENCY +'", "value": 1000}, "eventCode": "' + eventCode + '", "eventDate": "2021-01-01T01:00:00+01:00", "merchantAccountCode": "' + merchantAccountName + '", "merchantReference": "' + webCartId + '", "paymentMethod": "ach", "operations": ["CANCEL", "CAPTURE", "REFUND"], "pspReference": "' + pspReference + '", "reason": "null", "success": "' + success + '"}}]}';
     }
 
     private static String genericErrorResponse() {

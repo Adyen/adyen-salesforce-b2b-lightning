@@ -102,12 +102,18 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
     async constructAdyenCheckout() {
         try {
             this.adyenCheckout = await this.getAdyenCheckout();
-            this.mountedDropIn = this.adyenCheckout.create('dropin').mount('#dropin-container');
+            this.mountedDropIn = this.adyenCheckout.create('dropin', {
+                onSelect: this.handlePaymentMethodChange
+            }).mount('#dropin-container');
         } catch (error) {
             this.handleError(error);
         } finally {
             this.loading = false;
         }
+    }
+
+    handlePaymentMethodChange = (component) => {
+        this.dropInIsValid = component.state.isValid;
     }
 
     async getAdyenCheckout() {
@@ -286,7 +292,9 @@ export default class AdyenCheckoutComponent extends useCheckoutComponent(Navigat
 
     remountDropIn() {
         this.mountedDropIn.unmount();
-        this.mountedDropIn = this.adyenCheckout.create('dropin').mount('#dropin-container');
+        this.mountedDropIn = this.adyenCheckout.create('dropin', {
+            onSelect: this.handlePaymentMethodChange
+        }).mount('#dropin-container');
     }
 
     navigateToConfirmationPage(placeOrderResult) {
