@@ -12,6 +12,7 @@ public with sharing class AdyenPaymentRequestBuilder {
 
     private static PaymentsRequest buildCardPaymentRequest(ClientDetails clientDetails, WebCart cart, Adyen_Adapter__mdt adyenAdapter) {
         PaymentsRequest paymentRequest = buildCommonPaymentsRequest(clientDetails, cart, adyenAdapter);
+        paymentRequest.shopperIp = Auth.SessionManagement.getCurrentSession().get('SourceIp');
         paymentRequest.authenticationData = new AuthenticationData();
         paymentRequest.authenticationData.threeDSRequestData = new ThreeDSRequestData();
         paymentRequest.authenticationData.threeDSRequestData.nativeThreeDS = 'preferred';
