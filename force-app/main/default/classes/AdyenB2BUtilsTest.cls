@@ -108,14 +108,12 @@ private class AdyenB2BUtilsTest {
     @IsTest(SeeAllData=true)
     static void fetchCartDetailsTest() {
         // given
-        Decimal unitPrice = 10.99;
-        String currencyIsoCode = TestDataFactory.ACTIVE_CURRENCY;
-        WebStore webStore = TestDataFactory.setUpWebStore(unitPrice, currencyIsoCode);
-        User buyerUser = TestDataFactory.setUpBuyerUser(webStore.Id);
+        User buyerUser = TestDataFactory.setUpWebStoreAndBuyerUser();
+        Id webStoreId = TestDataFactory.findWebStoreIdByUserId(buyerUser.Id);
         // when
         WebCart cart;
         System.runAs(buyerUser) {
-            WebCart webCart = TestDataFactory.createCartWithOneItem(webStore.Id, 1);
+            WebCart webCart = TestDataFactory.createCartWithOneItem(webStoreId, 1);
             webCart.Status = 'Checkout';
             update webCart;
             Test.startTest();
@@ -124,17 +122,27 @@ private class AdyenB2BUtilsTest {
         }
         // then
         Assert.isNotNull(cart);
-        Assert.areEqual(unitPrice, cart.GrandTotalAmount);
+        Assert.areEqual(TestDataFactory.TEST_UNIT_PRICE, cart.GrandTotalAmount);
     }
 
     @IsTest
     static void fetchCartDetailsMissingTest() {
-        // given - no carts available
+        // given - no web store context available
+        AdyenB2BUtils.webStoreTestContext = new Map<String,String>();
         // when
         try {
             AdyenB2BUtils.fetchCartDetails();
             Assert.fail();
-        } catch (Exception ex) {
+        } catch (Exception ex) { // then
+            Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
+        }
+        // given - no cart available
+        AdyenB2BUtils.webStoreTestContext.put('webstoreId', '0ZEal000001m47BGAQ');
+        // when
+        try {
+            AdyenB2BUtils.fetchCartDetails();
+            Assert.fail();
+        } catch (Exception ex) { // then
             Assert.isInstanceOfType(ex, AdyenB2BUtils.AdyenCustomException.class);
         }
     }
