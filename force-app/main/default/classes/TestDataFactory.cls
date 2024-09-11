@@ -1,6 +1,22 @@
 @IsTest
 public without sharing class TestDataFactory {
     public static final String ACTIVE_CURRENCY = [SELECT IsoCode FROM CurrencyType WHERE IsActive = TRUE LIMIT 1].IsoCode;
+    public static final Decimal TEST_UNIT_PRICE = 10.99;
+
+    public static User setUpWebStoreAndBuyerUser() {
+        Decimal unitPrice = TEST_UNIT_PRICE;
+        String currencyIsoCode = ACTIVE_CURRENCY;
+        WebStore webStore = setUpWebStore(unitPrice, currencyIsoCode);
+        AdyenB2BUtils.webStoreTestContext = new Map<String,String>{'webstoreId' => webStore.Id};
+        User buyerUser = setUpBuyerUser(webStore.Id);
+        return buyerUser;
+    }
+
+    public static Id findWebStoreIdByUserId(Id userId) {
+        Id userAcctId = [SELECT AccountId FROM User WHERE Id = :userId].AccountId;
+        Id buyerGroupId = [SELECT BuyerGroupId FROM BuyerGroupMember WHERE BuyerId = :userAcctId].BuyerGroupId;
+        return [SELECT WebStoreId FROM WebStoreBuyerGroup WHERE BuyerGroupId = :buyerGroupId].WebStoreId;
+    }
 
     public static ClientDetails createClientDetails(String paymentType) {
         ClientDetails clientDetails = new ClientDetails();

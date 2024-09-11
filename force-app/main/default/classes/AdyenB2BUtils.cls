@@ -1,4 +1,7 @@
 public with sharing class AdyenB2BUtils {
+    @TestVisible
+    private static Map<String,String> webStoreTestContext;
+
     public class AdyenCustomException extends Exception {}
     public static Adyen_Adapter__mdt retrieveAdyenAdapter(String adyenAdapterName) {
         List<Adyen_Adapter__mdt> adyenAdapters = [
@@ -29,14 +32,21 @@ public with sharing class AdyenB2BUtils {
     }
 
     public static WebCart fetchCartDetails() {
+        Map<String,String> webStoreContextMap = Test.isRunningTest() ? webStoreTestContext : WebStoreContext.getCommerceContext();
+        Id webStoreId = webStoreContextMap.get('webstoreId');
+        if (String.isBlank(webStoreId)) {
+            throw new AdyenCustomException('Could not find the web store Id of this user context: ' + UserInfo.getUserId());
+        }
         List<WebCart> webCarts = [
             SELECT GrandTotalAmount, CurrencyIsoCode, Owner.Name, AccountId
             FROM WebCart
-            WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout')
+            WHERE OwnerId = :UserInfo.getUserId() AND Status IN ('Active', 'Checkout') AND WebStoreId = :webStoreId
             WITH USER_MODE
         ];
         if (webCarts.isEmpty()) {
             throw new AdyenCustomException('No active or in checkout cart found for this user id: ' + UserInfo.getUserId());
+        } else if (webCarts.size() > 1) {
+            throw new AdyenCustomException('More than a single active or in checkout cart found for this user id: ' + UserInfo.getUserId());
         }
         return webCarts[0];
     }
