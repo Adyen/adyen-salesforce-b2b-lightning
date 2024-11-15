@@ -3,6 +3,10 @@
 This repository contains all the metadata and code necessary for integrating the payment processing through Adyen Drop-In component in your LWR B2B digital experience store in Salesforce.  
 For more information on what this package can do please consult [Adyen Salesforce B2B Commerce Lightning doc](https://docs.adyen.com/plugins/salesforce-b2b-commerce-lightning/).
 
+## Deprecation
+
+This repository will be deprecated on 30th November 2024. 
+
 ## Prerequisites
 -   [Adyen test account](https://docs.adyen.com/get-started-with-adyen)
 -   Access to your [Salesforce org](https://login.salesforce.com/).
